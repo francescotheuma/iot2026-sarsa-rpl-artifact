@@ -87,6 +87,8 @@
 #define RPL_OF_OCP RPL_OCP_MRHOF
 #endif /* RPL_CONF_OF_OCP */
 
+extern struct rpl_of rpl_sarsa;
+
 /*
  * The set of objective functions supported at runtime. Nodes are only
  * able to join instances that advertise an OF in this set. To include
@@ -95,7 +97,7 @@
 #ifdef RPL_CONF_SUPPORTED_OFS
 #define RPL_SUPPORTED_OFS RPL_CONF_SUPPORTED_OFS
 #else /* RPL_CONF_SUPPORTED_OFS */
-#define RPL_SUPPORTED_OFS {&rpl_mrhof}
+#define RPL_SUPPORTED_OFS {&rpl_mrhof, &rpl_sarsa}
 #endif /* RPL_CONF_SUPPORTED_OFS */
 
 /*

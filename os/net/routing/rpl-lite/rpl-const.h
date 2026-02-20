@@ -89,6 +89,7 @@
 /* IANA Objective Code Point as defined in RFC6550 */
 #define RPL_OCP_OF0     0
 #define RPL_OCP_MRHOF   1
+#define RPL_OCP_SARSA   10
 
 /*---------------------------------------------------------------------------*/
 /* RPL message types */

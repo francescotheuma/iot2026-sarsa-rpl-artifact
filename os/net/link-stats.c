@@ -38,6 +38,8 @@
 #include "net/link-stats.h"
 #include <stdio.h>
 
+#include "net/routing/rpl-lite/rpl.h" // To enable sarsa access
+
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "Link Stats"
