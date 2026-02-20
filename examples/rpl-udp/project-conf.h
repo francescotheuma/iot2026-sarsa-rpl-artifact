@@ -4,3 +4,5 @@
 /* Tell the node to use Objective Function 10 (SARSA) */
 #undef RPL_CONF_OF_OCP
 #define RPL_CONF_OF_OCP 10
+
+#define RPL_CONF_WITH_MC 1
