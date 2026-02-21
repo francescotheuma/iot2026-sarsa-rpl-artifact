@@ -6,7 +6,7 @@
 #include "sys/energest.h"
 
 /* for energest*/
-#define DRAIN_MAGNITUDE 1000000
+#define DRAIN_MAGNITUDE 100
 
 /* Log configuration */
 #define LOG_MODULE "RPL"
@@ -44,23 +44,26 @@ NBR_TABLE(sarsa_nbr_t, sarsa_neighbors);
 /* Helper to get local battery for the MC - PLACED AT TOP TO AVOID TYPE ERRORS */
 static uint8_t 
 get_local_energy_est(void) {
-  /* 1. Update all Energest values to the current moment */
   energest_flush();
-
-  /* 2. Get the total time the radio has been active (TX + RX) */
-  /* These values are in 'ticks' */
+  
   uint64_t tx_ticks = energest_type_time(ENERGEST_TYPE_TRANSMIT);
   uint64_t rx_ticks = energest_type_time(ENERGEST_TYPE_LISTEN);
+  uint64_t cpu_ticks = energest_type_time(ENERGEST_TYPE_CPU);
   
-  /* 3. Calculate "Cost" with your requested magnitude increase */
-  /* We scale it so that simulation activity actually impacts the battery */
-  uint64_t total_consumption = (tx_ticks + rx_ticks) * DRAIN_MAGNITUDE;
-
-  /* 4. Convert to a 0-100 percentage */
-  /* In a real scenario, you'd divide by a battery capacity constant */
-  /* For simulation, we subtract from 100 and floor at 0 */
-  long battery_max = 1000000000ULL; // Representing a hypothetical capacity
-  long remaining = 100 - (total_consumption / (battery_max / 100));
+  /* MATHEMATICAL ABSTRACTION: 
+   * Simulate a realistic 1% Radio Duty Cycle by dividing listen ticks by 100.
+   * This unmasks the TX and CPU differences between standard RPL and SARSA. */
+  uint64_t simulated_rx_ticks = rx_ticks / 100;
+  
+  /* CRITICAL: Because total ticks are now much smaller, you may need to 
+   * increase DRAIN_MAGNITUDE (e.g., from 10 to 500 or 1000) so the test 
+   * doesn't take 5 hours to run. */
+  uint64_t total_consumption = (tx_ticks + simulated_rx_ticks + cpu_ticks) * DRAIN_MAGNITUDE;
+  
+  long battery_max = 1000000000ULL; /* Keep this the same */
+  
+  long drain = total_consumption / (battery_max / 100);
+  long remaining = 100 - drain;
 
   if(remaining < 0) return 0;
   if(remaining > 100) return 100;
