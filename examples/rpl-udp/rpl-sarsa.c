@@ -45,7 +45,7 @@ NBR_TABLE(sarsa_nbr_t, sarsa_neighbors);
 /*---------------------------------------------------------------------------*/
 static uint8_t 
 get_local_energy_est(void) {
-  energest_flush();
+  energest_flush(); // forces update of tick counts
   
   uint64_t tx_ticks = energest_type_time(ENERGEST_TYPE_TRANSMIT);
   uint64_t rx_ticks = energest_type_time(ENERGEST_TYPE_LISTEN);
@@ -54,7 +54,7 @@ get_local_energy_est(void) {
   uint64_t simulated_rx_ticks = rx_ticks / 100;
   uint64_t total_consumption = (tx_ticks + simulated_rx_ticks + cpu_ticks) * DRAIN_MAGNITUDE;
   
-  long battery_max = 1000000000ULL; 
+  long battery_max = 1000000000ULL; //Crazy math
   long drain = total_consumption / (battery_max / 100);
   long remaining = 100 - drain;
 
@@ -105,63 +105,54 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 {
   if(nbr == NULL || data == NULL) return;
 
-  /* --- 1. CURRENT STATE METRICS (Higher is Better) --- */
+  /* --- 1. FEATURES --- */
   int32_t f_energy = (int32_t)data->energy_level; 
-  
-  /* Convert ETX into Link Quality (100 = Perfect, 0 = Terrible) */
   int32_t raw_etx = ((int32_t)nbr_link_metric(nbr) * 100) / 512;
   if(raw_etx > 100) raw_etx = 100; 
   int32_t f_link_quality = 100 - raw_etx; 
 
-  /* --- 2. THE OLD Q-VALUE --- */
+  /* --- 2. PREDICTION --- */
   int32_t old_predicted_q = data->q_value; 
 
-  /* --- 3. THE IMMEDIATE REWARD --- */
-  /* Reward is current state evaluation using our dynamic weight sum */
+  /* --- 3. REWARD & FUTURE VALUE --- */
   int32_t total_weight = w_energy + w_lq;
-  if (total_weight == 0) total_weight = 1; /* Safety fallback */
+  if (total_weight == 0) total_weight = 1; 
   int32_t reward = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight;
 
-  /* --- 4. THE NEXT STATE VALUE --- */
   int32_t future_value = 0;
   if(nbr->rank > 0 && nbr->rank < 65535) {
       future_value = 25600 / (int32_t)nbr->rank;
       if(future_value > 100) future_value = 100;
   }
 
-  /* --- 5. THE TARGET & TD ERROR --- */
-  /* Convex combination mathematically guarantees the target stays <= 100 */
+  /* --- 4. TD ERROR --- */
   int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
   int32_t td_error = target - old_predicted_q; 
 
- /* --- 6. DYNAMIC WEIGHT UPDATE --- */
-  int32_t safe_alpha = 5; 
+  /* --- 5. CONDITIONAL LEARNING (Proper SARSA) --- */
+  /* Only update the global weights if this neighbor is our chosen action (parent) */
+  if(nbr == curr_instance.dag.preferred_parent) {
+      
+      // Decay
+      w_energy = w_energy - (w_energy >> 6);
+      w_lq = w_lq - (w_lq >> 6);
 
-  /* 1. Exponential Decay (Soft Ceiling) 
-   * Right-shift by 4 subtracts ~6.25% of the current weight. 
-   * This naturally bounds the weight: as the weight grows, the decay amount 
-   * grows until it perfectly cancels out the incoming TD reward. */
-  w_energy = w_energy - (w_energy >> 6);
-  w_lq = w_lq - (w_lq >> 6);
+      // Update weights based on the experience with THIS parent
+      w_energy = w_energy + ((ALPHA * td_error * f_energy) / 1000);
+      w_lq = w_lq + ((ALPHA * td_error * f_link_quality) / 1000);
 
-  /* 2. Apply new learning proportional to the feature's contribution */
-  w_energy = w_energy + ((safe_alpha * td_error * f_energy) / 1000);
-  w_lq = w_lq + ((safe_alpha * td_error * f_link_quality) / 1000);
+      // Soft Floor
+      if(w_energy < 10) w_energy = 10;
+      if(w_lq < 10) w_lq = 10;
+      
+      LOG_INFO("LEARNING (On-Policy): Nbr %02x | W_E: %ld, W_LQ: %ld| Batt: %u%%\n", 
+               rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1], w_energy, w_lq, (uint8_t)get_local_energy_est());
+  }
 
-  /* 3. Soft Floor 
-   * Prevent weights from dropping to zero or going negative so we never 
-   * entirely ignore a routing metric. */
-  if(w_energy < 10) w_energy = 10;
-  if(w_lq < 10) w_lq = 10;
-
-  /* --- 7. SAVE NEW PREDICTION FOR NEXT TIME --- */
-  total_weight = w_energy + w_lq; /* Recalculate after updates */
+  /* --- 6. SAVE Q-VALUE --- */
+  /* Always update the neighbor's individual Q-value for comparison purposes */
+  total_weight = w_energy + w_lq; 
   data->q_value = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight; 
-
-  LOG_INFO("LEARNING: Nbr %02x | MyBatt: %d%% | Rew: %ld | TD: %ld | W_E: %ld, W_LQ: %ld\n", 
-          rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1],
-          get_local_energy_est(), // Add this call here
-          reward, td_error, w_energy, w_lq);
 }
 
 /*---------------------------------------------------------------------------*/
