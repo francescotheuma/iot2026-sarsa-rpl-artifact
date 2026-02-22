@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "sys/energest.h"
-
 #include "sys/log.h"
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_INFO
@@ -71,17 +69,6 @@ PROCESS_THREAD(udp_client_process, ev, data)
                  tx_count, rx_count, missed_tx_count);
       }
 
-      /* --- ENERGEST DEBUG BLOCK --- */
-      energest_flush();
-      uint64_t tx_ticks = energest_type_time(ENERGEST_TYPE_TRANSMIT);
-      uint64_t rx_ticks = energest_type_time(ENERGEST_TYPE_LISTEN);
-      uint64_t cpu_ticks = energest_type_time(ENERGEST_TYPE_CPU);
-      
-      /* We cast to unsigned long to avoid cross-platform %llu format issues */
-      LOG_INFO("ENERGEST DRAIN -> TX: %lu | RX: %lu | CPU: %lu\n", 
-               (unsigned long)tx_ticks, (unsigned long)rx_ticks, (unsigned long)cpu_ticks);
-      /* ---------------------------- */
-      
       /* Send to DAG root */
       LOG_INFO("Sending request %"PRIu32" to ", tx_count);
       LOG_INFO_6ADDR(&dest_ipaddr);
