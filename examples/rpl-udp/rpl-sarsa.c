@@ -29,7 +29,7 @@
 #define MAX_PATH_COST       32768 
 
 /* --- POLICY WEIGHTS --- */
-/* We renamed w_etx to w_lq (Weight of Link Quality) because we are 
+/* Renamed w_etx to w_lq (Weight of Link Quality) because we are 
  * converting the ETX cost into a positive utility score. */
 static int32_t w_energy = 50; 
 static int32_t w_lq = 50;
@@ -40,7 +40,7 @@ typedef struct {
   uint8_t energy_level; 
 } sarsa_nbr_t;
 
-NBR_TABLE(sarsa_nbr_t, sarsa_neighbors);
+NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory for the neighbours
 
 /* Function to get battery level*/
 static uint8_t 
@@ -54,7 +54,7 @@ get_local_energy_est(void) {
   uint64_t simulated_rx_ticks = rx_ticks / 100;
   uint64_t total_consumption = (tx_ticks + simulated_rx_ticks + cpu_ticks) * DRAIN_MAGNITUDE;
   
-  long battery_max = 1000000000ULL; //Crazy math
+  uint64_t battery_max = 1000000000ULL; //Crazy math
   long drain = total_consumption / (battery_max / 100);
   long remaining = 100 - drain;
 
@@ -111,8 +111,8 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
   /* 1. Scale ETX so that 1.0 (512) is the base, and 5.0 (2560) is 'terrible' */
   int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
 
-  /* 2. Convert to a 0-100 scale where 100 is BEST. 
-    We use 512 as the 'perfect' floor. */
+  /* 2. Convert to a 0-100 scale where 100 is the best.
+    ETX is measured in units of 512 */
   int32_t f_link_quality;
   if(raw_etx <= 512) {
       f_link_quality = 100; // Perfect link
@@ -225,11 +225,13 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(d1 == NULL) return p1; 
   if(d2 == NULL) return p2;
 
+  // EXPLORATION
   if(random_rand() % 100 < 10) {
       LOG_INFO("SARSA EXPLORATION (10%%): Trying random route!\n");
       return (random_rand() % 2 == 0) ? p1 : p2;
   }
 
+  // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {
       return (d1->q_value + 5 >= d2->q_value) ? p1 : p2; 
   }
