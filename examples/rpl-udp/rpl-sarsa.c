@@ -6,7 +6,7 @@
 #include "sys/energest.h"
 #include "random.h" 
 
-/* for energest */
+/* for energest battery drain*/
 #define DRAIN_MAGNITUDE 500
 
 /* Log configuration */
@@ -28,13 +28,13 @@
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
 
-/* --- GLOBAL POLICY WEIGHTS --- */
+/* --- POLICY WEIGHTS --- */
 /* We renamed w_etx to w_lq (Weight of Link Quality) because we are 
  * converting the ETX cost into a positive utility score. */
 static int32_t w_energy = 50; 
 static int32_t w_lq = 50;
 
-/*---------------------------------------------------------------------------*/
+// Struct to house the SARSA-related node values
 typedef struct {
   int32_t q_value;      
   uint8_t energy_level; 
@@ -42,7 +42,7 @@ typedef struct {
 
 NBR_TABLE(sarsa_nbr_t, sarsa_neighbors);
 
-/*---------------------------------------------------------------------------*/
+/* Function to get battery level*/
 static uint8_t 
 get_local_energy_est(void) {
   energest_flush(); // forces update of tick counts
@@ -105,16 +105,28 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 {
   if(nbr == NULL || data == NULL) return;
 
-  /* --- 1. FEATURES --- */
+  /* --- FEATURES --- */
   int32_t f_energy = (int32_t)data->energy_level; 
-  int32_t raw_etx = ((int32_t)nbr_link_metric(nbr) * 100) / 512;
-  if(raw_etx > 100) raw_etx = 100; 
-  int32_t f_link_quality = 100 - raw_etx; 
 
-  /* --- 2. PREDICTION --- */
+  /* 1. Scale ETX so that 1.0 (512) is the base, and 5.0 (2560) is 'terrible' */
+  int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
+
+  /* 2. Convert to a 0-100 scale where 100 is BEST. 
+    We use 512 as the 'perfect' floor. */
+  int32_t f_link_quality;
+  if(raw_etx <= 512) {
+      f_link_quality = 100; // Perfect link
+  } else if(raw_etx >= 2560) {
+      f_link_quality = 0;   // Anything worse than ETX 5.0 is 'trash'
+  } else {
+      // Math to slide between 100 and 0
+      f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
+  }
+
+  /* --- PREDICTION --- */
   int32_t old_predicted_q = data->q_value; 
 
-  /* --- 3. REWARD & FUTURE VALUE --- */
+  /* --- REWARD & FUTURE VALUE --- */
   int32_t total_weight = w_energy + w_lq;
   if (total_weight == 0) total_weight = 1; 
   int32_t reward = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight;
@@ -125,11 +137,11 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
       if(future_value > 100) future_value = 100;
   }
 
-  /* --- 4. TD ERROR --- */
+  /* --- TD ERROR --- */
   int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
   int32_t td_error = target - old_predicted_q; 
 
-  /* --- 5. CONDITIONAL LEARNING (Proper SARSA) --- */
+  /* --- CONDITIONAL LEARNING (Proper SARSA) --- */
   /* Only update the global weights if this neighbor is our chosen action (parent) */
   if(nbr == curr_instance.dag.preferred_parent) {
       
@@ -145,11 +157,11 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
       if(w_energy < 10) w_energy = 10;
       if(w_lq < 10) w_lq = 10;
       
-      LOG_INFO("LEARNING (On-Policy): Nbr %02x | W_E: %ld, W_LQ: %ld| Batt: %u%%\n", 
-               rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1], w_energy, w_lq, (uint8_t)get_local_energy_est());
+      LOG_INFO("LEARNING (On-Policy): Nbr %02x | W_E: %d, W_LQ: %d| Batt: %u%%\n", 
+               rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1], (int)w_energy, (int)w_lq, (unsigned int)get_local_energy_est());
   }
 
-  /* --- 6. SAVE Q-VALUE --- */
+  /* --- SAVE Q-VALUE --- */
   /* Always update the neighbor's individual Q-value for comparison purposes */
   total_weight = w_energy + w_lq; 
   data->q_value = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight; 
