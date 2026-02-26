@@ -117,7 +117,7 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
   if(raw_etx <= 512) {
       f_link_quality = 100; // Perfect link
   } else if(raw_etx >= 2560) {
-      f_link_quality = 0;   // Anything worse than ETX 5.0 is 'trash'
+      f_link_quality = 0;   // Anything worse than ETX 5.0 is bad
   } else {
       // Math to slide between 100 and 0
       f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
@@ -131,34 +131,38 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
   if (total_weight == 0) total_weight = 1; 
   int32_t reward = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight;
 
+  /* --- FUTURE VALUE (Path Quality) --- */
+  /* Instead of 25600/rank, we use a comparison: 
+   * How much "Rank Room" is left before we hit the max? */
   int32_t future_value = 0;
-  if(nbr->rank > 0 && nbr->rank < 65535) {
-      future_value = 25600 / (int32_t)nbr->rank;
-      if(future_value > 100) future_value = 100;
+  if(nbr->rank < RPL_INFINITE_RANK) {
+      // 100 * (1 - (nbr_rank / MAX_RANK))
+      // This gives a high value if the neighbor has a low rank relative to the network limit
+      future_value = 100 - ((int32_t)nbr->rank * 100 / MAX_PATH_COST);
+      if(future_value < 0) future_value = 0;
   }
 
   /* --- TD ERROR --- */
+  // target = reward + (gamma * future_value)
   int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
   int32_t td_error = target - old_predicted_q; 
 
-  /* --- CONDITIONAL LEARNING (Proper SARSA) --- */
-  /* Only update the global weights if this neighbor is our chosen action (parent) */
+  /* --- CONDITIONAL LEARNING --- */
+  /* Only update the global weights if this neighbour is our chosen action (parent) */
   if(nbr == curr_instance.dag.preferred_parent) {
-      
-      // Decay
-      w_energy = w_energy - (w_energy >> 6);
-      w_lq = w_lq - (w_lq >> 6);
 
       // Update weights based on the experience with THIS parent
-      w_energy = w_energy + ((ALPHA * td_error * f_energy) / 1000);
-      w_lq = w_lq + ((ALPHA * td_error * f_link_quality) / 1000);
+      w_energy = w_energy + ((ALPHA * td_error * f_energy) / 500);
+      w_lq = w_lq + ((ALPHA * td_error * f_link_quality) / 500);
 
       // Soft Floor
       if(w_energy < 10) w_energy = 10;
       if(w_lq < 10) w_lq = 10;
+      if (w_energy > 200) w_energy = 200;
+      if (w_lq > 200) w_lq = 200;
       
-      LOG_INFO("LEARNING (On-Policy): Nbr %02x | W_E: %d, W_LQ: %d| Batt: %u%%\n", 
-               rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1], (int)w_energy, (int)w_lq, (unsigned int)get_local_energy_est());
+      LOG_INFO("LEARNING (On-Policy): Nbr %02x | W_E: %d, W_LQ: %d| Batt: %u%% | TD_Err: %d\n", 
+               rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1], (int)w_energy, (int)w_lq, (unsigned int)get_local_energy_est(), (int)td_error);
   }
 
   /* --- SAVE Q-VALUE --- */
