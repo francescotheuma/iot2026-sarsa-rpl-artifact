@@ -168,9 +168,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr(&ds6_nbr->ipaddr);
   if(nbr == NULL) return;
 
-  /* 2. ONLY learn if we actually sent this to our chosen Action (Preferred Parent) */
-  if(nbr != curr_instance.dag.preferred_parent) return;
-
+  /* 2. Get SARSA data for the neighbour transmitted to*/
   sarsa_nbr_t *data = get_sarsa_data(nbr);
   if(data == NULL) return;
 
