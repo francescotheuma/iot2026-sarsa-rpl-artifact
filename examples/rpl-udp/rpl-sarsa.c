@@ -28,16 +28,13 @@
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
 
-/* --- POLICY WEIGHTS --- */
-/* Renamed w_etx to w_lq (Weight of Link Quality) because we are 
- * converting the ETX cost into a positive utility score. */
-static int32_t w_energy = 50; 
-static int32_t w_lq = 50;
-
 // Struct to house the SARSA-related node values
 typedef struct {
   int32_t q_value;      
-  uint8_t energy_level; 
+  uint8_t energy_level;
+  /* Weights per neighbour*/
+  int32_t w_energy;
+  int32_t w_lq; 
 } sarsa_nbr_t;
 
 NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory for the neighbours
@@ -86,6 +83,8 @@ get_sarsa_data(rpl_nbr_t *nbr)
     if(s_data != NULL) {
       s_data->q_value = 0;
       s_data->energy_level = 100; 
+      s_data->w_energy = 50;
+      s_data->w_lq = 50;
     }
   }
   return s_data;
@@ -151,11 +150,11 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
       f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
   }
 
-  int32_t total_weight = w_energy + w_lq;
+  int32_t total_weight = data->w_energy + data->w_lq;
   if (total_weight == 0) total_weight = 1; 
 
   /* We ONLY update the Q-value here. The weights are updated by the MAC callback. */
-  data->q_value = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight; 
+  data->q_value = ((data->w_energy * f_energy) + (data->w_lq * f_link_quality)) / total_weight; 
 }
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -177,10 +176,17 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   /* 3. The True Environmental Reward */
   int32_t reward = 0;
+  int32_t parent_battery = (int32_t)data->energy_level; // Current parent battery
+
   if(status == MAC_TX_OK) {
-      reward = (numtx == 1) ? 10 : -5; // +10 for perfect hop, +2 if it struggled
+    // Reward changes based on parent battery level to encourage energy balancing
+      reward = (10 * parent_battery) / 100; 
+      
+      if(numtx > 1){
+        reward -= (20 * (100 - parent_battery)) / 100;
+      }
   } else {
-      reward = -30; // Massive penalty for dropped packet or full queue
+      reward = -100; // Massive penalty for dropped packet
   }
 
   /* 4. Extract State Features */
@@ -205,18 +211,20 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - old_predicted_q; 
 
   /* 7. Update Global Policy Weights */
-  w_energy = w_energy + ((ALPHA * td_error * f_energy) / 500);
-  w_lq = w_lq + ((ALPHA * td_error * f_link_quality) / 500);
+  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 500);
+  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 500);
 
   /* Soft bounds to prevent weights from exploding/dying */
-  if(w_energy < 10) w_energy = 10;
-  if(w_lq < 10) w_lq = 10;
-  if (w_energy > 200) w_energy = 200;
-  if (w_lq > 200) w_lq = 200;
+  if(data->w_energy < 10) data->w_energy = 10;
+  if(data->w_lq < 10) data->w_lq = 10;
+  if (data->w_energy > 200) data->w_energy = 200;
+  if (data->w_lq > 200) data->w_lq = 200;
 
-  LOG_INFO("MAC REWARD: %s | Rew: %d | TD_Err: %d | W_E: %d, W_LQ: %d, Batt: %d\n",
+  uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
+
+  LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_E: %d, W_LQ: %d, Batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)reward, (int)td_error, (int)w_energy, (int)w_lq, (int)data->energy_level);
+           (int)nbr_id, (int)reward, (int)td_error, (int)data->w_energy, (int)data->w_lq, (int)data->energy_level);
 }
 
 /*---------------------------------------------------------------------------*/
