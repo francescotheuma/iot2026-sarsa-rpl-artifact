@@ -9,3 +9,5 @@
 
 /* Turn on the Energy Tracker*/
 #define ENERGEST_CONF_ON 1
+
+#define SARSA_ENABLED 1 

@@ -99,79 +99,6 @@ nbr_link_metric(rpl_nbr_t *nbr)
   return stats != NULL ? stats->etx : 0xffff;
 }
 
-/*---------------------------------------------------------------------------*/
-static void
-update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
-{
-  if(nbr == NULL || data == NULL) return;
-
-  /* --- FEATURES --- */
-  int32_t f_energy = (int32_t)data->energy_level; 
-
-  /* 1. Scale ETX so that 1.0 (512) is the base, and 5.0 (2560) is 'terrible' */
-  int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
-
-  /* 2. Convert to a 0-100 scale where 100 is the best.
-    ETX is measured in units of 512 */
-  int32_t f_link_quality;
-  if(raw_etx <= 512) {
-      f_link_quality = 100; // Perfect link
-  } else if(raw_etx >= 2560) {
-      f_link_quality = 0;   // Anything worse than ETX 5.0 is bad
-  } else {
-      // Math to slide between 100 and 0
-      f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
-  }
-
-  /* --- PREDICTION --- */
-  int32_t old_predicted_q = data->q_value; 
-
-  /* --- REWARD & FUTURE VALUE --- */
-  int32_t total_weight = w_energy + w_lq;
-  if (total_weight == 0) total_weight = 1; 
-  int32_t reward = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight;
-
-  /* --- FUTURE VALUE (Path Quality) --- */
-  /* Instead of 25600/rank, we use a comparison: 
-   * How much "Rank Room" is left before we hit the max? */
-  int32_t future_value = 0;
-  if(nbr->rank < RPL_INFINITE_RANK) {
-      // 100 * (1 - (nbr_rank / MAX_RANK))
-      // This gives a high value if the neighbor has a low rank relative to the network limit
-      future_value = 100 - ((int32_t)nbr->rank * 100 / MAX_PATH_COST);
-      if(future_value < 0) future_value = 0;
-  }
-
-  /* --- TD ERROR --- */
-  // target = reward + (gamma * future_value)
-  int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
-  int32_t td_error = target - old_predicted_q; 
-
-  /* --- CONDITIONAL LEARNING --- */
-  /* Only update the global weights if this neighbour is our chosen action (parent) */
-  if(nbr == curr_instance.dag.preferred_parent) {
-
-      // Update weights based on the experience with THIS parent
-      w_energy = w_energy + ((ALPHA * td_error * f_energy) / 500);
-      w_lq = w_lq + ((ALPHA * td_error * f_link_quality) / 500);
-
-      // Soft Floor
-      if(w_energy < 10) w_energy = 10;
-      if(w_lq < 10) w_lq = 10;
-      if (w_energy > 200) w_energy = 200;
-      if (w_lq > 200) w_lq = 200;
-      
-      LOG_INFO("LEARNING (On-Policy): Nbr %02x | W_E: %d, W_LQ: %d| Batt: %u%% | TD_Err: %d\n", 
-               rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1], (int)w_energy, (int)w_lq, (unsigned int)get_local_energy_est(), (int)td_error);
-  }
-
-  /* --- SAVE Q-VALUE --- */
-  /* Always update the neighbor's individual Q-value for comparison purposes */
-  total_weight = w_energy + w_lq; 
-  data->q_value = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight; 
-}
-
-/*---------------------------------------------------------------------------*/
 static uint16_t
 nbr_path_cost(rpl_nbr_t *nbr)
 {
@@ -201,6 +128,95 @@ static int
 nbr_is_acceptable_parent(rpl_nbr_t *nbr)
 {
   return nbr_has_usable_link(nbr) && nbr_path_cost(nbr) <= MAX_PATH_COST;
+}
+
+#include "net/ipv6/uip-ds6-nbr.h"
+
+
+/*---------------------------------------------------------------------------*/
+static void
+update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
+{
+  if(nbr == NULL || data == NULL) return;
+
+  int32_t f_energy = (int32_t)data->energy_level; 
+  int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
+  int32_t f_link_quality;
+  
+  if(raw_etx <= 512) {
+      f_link_quality = 100;
+  } else if(raw_etx >= 2560) {
+      f_link_quality = 0;
+  } else {
+      f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
+  }
+
+  int32_t total_weight = w_energy + w_lq;
+  if (total_weight == 0) total_weight = 1; 
+
+  /* We ONLY update the Q-value here. The weights are updated by the MAC callback. */
+  data->q_value = ((w_energy * f_energy) + (w_lq * f_link_quality)) / total_weight; 
+}
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx) 
+{
+  if(lladdr == NULL || linkaddr_cmp(lladdr, &linkaddr_null)) return;
+
+  /* 1. Safely convert MAC address to RPL Neighbor */
+  uip_ds6_nbr_t *ds6_nbr = uip_ds6_nbr_ll_lookup((const uip_lladdr_t *)lladdr);
+  if(ds6_nbr == NULL) return;
+  rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr(&ds6_nbr->ipaddr);
+  if(nbr == NULL) return;
+
+  /* 2. ONLY learn if we actually sent this to our chosen Action (Preferred Parent) */
+  if(nbr != curr_instance.dag.preferred_parent) return;
+
+  sarsa_nbr_t *data = get_sarsa_data(nbr);
+  if(data == NULL) return;
+
+  /* 3. The True Environmental Reward */
+  int32_t reward = 0;
+  if(status == MAC_TX_OK) {
+      reward = (numtx == 1) ? 10 : -5; // +10 for perfect hop, +2 if it struggled
+  } else {
+      reward = -30; // Massive penalty for dropped packet or full queue
+  }
+
+  /* 4. Extract State Features */
+  int32_t f_energy = (int32_t)data->energy_level; 
+  int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
+  int32_t f_link_quality;
+  if(raw_etx <= 512) f_link_quality = 100;
+  else if(raw_etx >= 2560) f_link_quality = 0;
+  else f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
+
+  int32_t old_predicted_q = data->q_value; 
+
+  /* 5. Future Value */
+  int32_t future_value = 0;
+  if(nbr->rank < RPL_INFINITE_RANK) {
+      future_value = 100 - ((int32_t)nbr->rank * 100 / MAX_PATH_COST);
+      if(future_value < 0) future_value = 0;
+  }
+
+  /* 6. Calculate True TD Error */
+  int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
+  int32_t td_error = target - old_predicted_q; 
+
+  /* 7. Update Global Policy Weights */
+  w_energy = w_energy + ((ALPHA * td_error * f_energy) / 500);
+  w_lq = w_lq + ((ALPHA * td_error * f_link_quality) / 500);
+
+  /* Soft bounds to prevent weights from exploding/dying */
+  if(w_energy < 10) w_energy = 10;
+  if(w_lq < 10) w_lq = 10;
+  if (w_energy > 200) w_energy = 200;
+  if (w_lq > 200) w_lq = 200;
+
+  LOG_INFO("MAC REWARD: %s | Rew: %d | TD_Err: %d | W_E: %d, W_LQ: %d, Batt: %d\n",
+           (status == MAC_TX_OK) ? "OK" : "FAIL",
+           (int)reward, (int)td_error, (int)w_energy, (int)w_lq, (int)data->energy_level);
 }
 
 /*---------------------------------------------------------------------------*/
