@@ -22,7 +22,7 @@
 #endif
 
 /* --- ML CONSTANTS --- */
-#define ALPHA 20   /* Learning Rate (0.20) */
+#define ALPHA 40   /* Learning Rate (0.40) */
 #define GAMMA 90   /* Discount Factor (0.90) */
 
 #define MAX_LINK_METRIC     512   
@@ -160,6 +160,16 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 /*---------------------------------------------------------------------------*/
 void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx) 
 {
+
+  rpl_instance_t *instance = rpl_get_default_instance();
+
+  // Check if node is Root
+  if(instance != NULL && instance->used) {
+    if(instance->dag.rank == ROOT_RANK){
+      return; // Root doesn't learn, it just serves as a sink
+    }
+  }
+
   if(lladdr == NULL || linkaddr_cmp(lladdr, &linkaddr_null)) return;
 
   /* 1. Safely convert MAC address to RPL Neighbor */
@@ -220,9 +230,9 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
 
-  LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_E: %d, W_LQ: %d, Batt: %d\n",
+  LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_E: %d, W_LQ: %d, Par_Batt: %d, My_Batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)nbr_id, (int)reward, (int)td_error, (int)data->w_energy, (int)data->w_lq, (int)data->energy_level);
+           (int)nbr_id, (int)reward, (int)td_error, (int)data->w_energy, (int)data->w_lq, (int)data->energy_level, get_local_energy_est());
 }
 
 /*---------------------------------------------------------------------------*/
