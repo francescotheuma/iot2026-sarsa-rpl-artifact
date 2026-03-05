@@ -22,7 +22,7 @@
 #endif
 
 /* --- ML CONSTANTS --- */
-#define ALPHA 40   /* Learning Rate (0.40) */
+#define ALPHA 20   /* Learning Rate (0.20) */
 #define GAMMA 90   /* Discount Factor (0.90) */
 
 #define MAX_LINK_METRIC     512   
