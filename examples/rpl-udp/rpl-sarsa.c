@@ -19,7 +19,7 @@
 #endif
 
 /* --- ML CONSTANTS --- */
-#define ALPHA 20   /* Learning Rate (0.20) */
+#define ALPHA 10   /* Learning Rate (0.20) */
 #define GAMMA 90   /* Discount Factor (0.90) */
 
 #define MAX_LINK_METRIC     512   
@@ -187,7 +187,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - old_predicted_q; 
 
   /* 7. Update Global Policy Weights */
-  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 500);
+  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 100);
 
   /* Soft bounds to prevent weights from exploding/dying */
   if(data->w_lq < 10) data->w_lq = 10;
