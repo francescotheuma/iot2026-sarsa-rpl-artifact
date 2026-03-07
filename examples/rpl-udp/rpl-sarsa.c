@@ -81,9 +81,10 @@ get_sarsa_data(rpl_nbr_t *nbr)
   if(s_data == NULL) {
     s_data = nbr_table_add_lladdr(sarsa_neighbors, lladdr, NBR_TABLE_REASON_RPL_LITE, NULL);
     if(s_data != NULL) {
-      s_data->q_value = 0;
+      s_data->q_value = 100; // Optimistic initialisation
       s_data->w_lq = 50;
       s_data->w_energy = 50;
+      s_data->energy_level = 100; // to prevent initial bias against new neighbours with unknown energy levels
     }
   }
   return s_data;
@@ -279,7 +280,15 @@ update_metric_container(void)
 {
   curr_instance.mc.type = RPL_DAG_MC_ENERGY;
   curr_instance.mc.length = sizeof(curr_instance.mc.obj.energy);
-  curr_instance.mc.obj.energy.energy_est = get_local_energy_est();
+
+  // Root always has 100% battery
+  if(curr_instance.dag.rank == ROOT_RANK){
+      curr_instance.mc.obj.energy.energy_est = 100;
+  }
+  else{
+      curr_instance.mc.obj.energy.energy_est = get_local_energy_est();
+  }
+  
   curr_instance.mc.obj.energy.flags = RPL_DAG_MC_ENERGY_TYPE_BATTERY << RPL_DAG_MC_ENERGY_TYPE;
 }
 
