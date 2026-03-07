@@ -19,8 +19,8 @@
 #endif
 
 /* --- ML CONSTANTS --- */
-#define ALPHA 10   /* Learning Rate (0.20) */
-#define GAMMA 90   /* Discount Factor (0.90) */
+#define ALPHA 2   /* Learning Rate (0.20) */
+#define GAMMA 80   /* Discount Factor (0.90) */
 
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
@@ -107,24 +107,10 @@ nbr_is_acceptable_parent(rpl_nbr_t *nbr)
 static void
 update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 {
-  if(nbr == NULL || data == NULL) return;
-
-  int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
-  int32_t f_link_quality;
-  
-  if(raw_etx <= 512) {
-      f_link_quality = 100;
-  } else if(raw_etx >= 2560) {
-      f_link_quality = 0;
-  } else {
-      f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
-  }
-
-  int32_t total_weight = data->w_lq;
-  if (total_weight == 0) total_weight = 1; 
+  if(nbr == NULL || data == NULL) return; 
 
   /* We ONLY update the Q-value here. The weights are updated by the MAC callback. */
-  data->q_value = ((data->w_lq * f_link_quality)) / total_weight; 
+  data->q_value = data->w_lq; 
 }
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -157,13 +143,13 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   if(status == MAC_TX_OK) {
     // Reward changes based on parent battery level to encourage energy balancing
-      reward = 100;  
+      reward = 80;  
       
       if(numtx > 1){
-        reward -= 20*numtx;
+        reward -= 10*numtx;
       }
   } else {
-      reward = -100; // Massive penalty for dropped packet
+      reward = -20; // Massive penalty for dropped packet
   }
 
   /* 4. Extract State Features */
@@ -190,7 +176,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 100);
 
   /* Soft bounds to prevent weights from exploding/dying */
-  if(data->w_lq < 10) data->w_lq = 10;
+  if(data->w_lq < 40) data->w_lq = 40;
   if (data->w_lq > 200) data->w_lq = 200;
 
   uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
