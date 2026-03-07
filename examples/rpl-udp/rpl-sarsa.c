@@ -186,7 +186,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   if(status == MAC_TX_OK) {
     // Reward changes based on parent battery level to encourage energy balancing
-      reward = (80 * parent_battery) / 100;  
+      reward = (100 * parent_battery) / 100;  
       
       if(numtx > 1){
         reward -= (10*numtx);
@@ -222,8 +222,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 100);
 
   /* Soft bounds to prevent weights from exploding/dying */
-  if(data->w_lq < 40) data->w_lq = 40;
-  if(data->w_energy < 40) data->w_energy = 40;
+  if(data->w_lq < 10) data->w_lq = 10;
+  if(data->w_energy < 10) data->w_energy = 10;
   if (data->w_lq > 200) data->w_lq = 200;
   if (data->w_energy > 200) data->w_energy = 200;
 
@@ -288,7 +288,7 @@ update_metric_container(void)
   else{
       curr_instance.mc.obj.energy.energy_est = get_local_energy_est();
   }
-  
+
   curr_instance.mc.obj.energy.flags = RPL_DAG_MC_ENERGY_TYPE_BATTERY << RPL_DAG_MC_ENERGY_TYPE;
 }
 

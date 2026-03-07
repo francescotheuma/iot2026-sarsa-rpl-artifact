@@ -92,7 +92,7 @@ def plot_convergence(data):
     plt.grid(True, which='both', linestyle='--', alpha=0.5)
     
     plt.tight_layout()
-    output_path = os.path.join(SCRIPT_DIR, "sarsa_dual_trend.png")
+    output_path = os.path.join(SCRIPT_DIR, "plot.png")
     plt.savefig(output_path)
     print(f"Trend plot saved as {output_path}")
     plt.show()
