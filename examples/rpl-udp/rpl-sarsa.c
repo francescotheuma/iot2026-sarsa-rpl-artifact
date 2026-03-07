@@ -135,7 +135,7 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
   if(nbr == NULL || data == NULL) return; 
 
   int32_t f_energy = (int32_t)data->energy_level;
-  int32_t raw_etx = (int32_t)nbr_link__metric(nbr);
+  int32_t raw_etx = (int32_t)nbr_link_metric(nbr);
   int32_t f_link_quality;
 
   // Normalise ETX from 0-100
@@ -148,7 +148,7 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 
 
   /* Comine features into q-value for neighbour */
-  data->q_value = (data->w_lq * f_energy) + (data->w_lq * f_link_quality) / total_weight;
+  data->q_value = ((data->w_lq * f_energy) + (data->w_lq * f_link_quality)) / total_weight;
 }
 /*---------------------------------------------------------------------------*/
 

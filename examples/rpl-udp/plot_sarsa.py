@@ -6,12 +6,19 @@ import numpy as np
 
 # Get script directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Adjusted path based on your previous snippet
 LOG_FILE = os.path.join(SCRIPT_DIR, "..", "..", "tools", "cooja", "cooja.log")
 
 def parse_sarsa_logs():
-    data = defaultdict(lambda: {'x': [], 'y': []})
+    # We now store: w_lq, w_energy, and parent_batt for every (src, parent) pair
+    data = defaultdict(lambda: {'x': [], 'w_lq': [], 'w_e': [], 'p_batt': []})
     event_counters = defaultdict(int)
-    pattern = re.compile(r"ID:(?P<id>\d+).*W_LQ:\s*(?P<weight>\d+)")
+    
+    # NEW REGEX: Matches your new LOG_INFO format
+    # ID:3 ... MAC REWARD: OK | Parent: 1 | Rew: 80 | TD_Err: 86 | W_LQ: 18 | W_Energy: 50 | My_batt: 100 | Parent_batt: 100
+    pattern = re.compile(
+        r"ID:(?P<id>\d+).*?Parent:\s*(?P<parent>\d+).*?W_LQ:\s*(?P<w_lq>\d+).*?W_Energy:\s*(?P<w_e>\d+).*?Parent_batt:\s*(?P<p_batt>\d+)"
+    )
 
     try:
         if not os.path.exists(LOG_FILE):
@@ -23,11 +30,18 @@ def parse_sarsa_logs():
                 if "MAC REWARD" in line:
                     match = pattern.search(line)
                     if match:
-                        node_id = match.group('id')
-                        weight = int(match.group('weight'))
-                        event_counters[node_id] += 1
-                        data[node_id]['x'].append(event_counters[node_id])
-                        data[node_id]['y'].append(weight)
+                        src_id = match.group('id')
+                        parent_id = match.group('parent')
+                        
+                        # Create a unique key for each pair: e.g., "3->1"
+                        pair_key = (src_id, parent_id)
+                        
+                        event_counters[pair_key] += 1
+                        data[pair_key]['x'].append(event_counters[pair_key])
+                        data[pair_key]['w_lq'].append(int(match.group('w_lq')))
+                        data[pair_key]['w_e'].append(int(match.group('w_e')))
+                        data[pair_key]['p_batt'].append(int(match.group('p_batt')))
+                        
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
@@ -38,38 +52,49 @@ def plot_convergence(data):
         print("No data found.")
         return
 
-    plt.figure(figsize=(12, 7))
-    
-    # Increase window_size to make the plot smoother (e.g., 20-50)
+    plt.figure(figsize=(14, 8))
     window_size = 25 
 
-    for node_id in sorted(data.keys(), key=int):
-        x = np.array(data[node_id]['x'])
-        y = np.array(data[node_id]['y'])
+    # Sort keys by source then parent for a clean legend
+    for pair_key in sorted(data.keys()):
+        src, parent = pair_key
+        x = np.array(data[pair_key]['x'])
         
-        if len(y) > window_size:
-            # Calculate Moving Average
-            y_smoothed = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
-            x_smoothed = x[window_size-1:]
-            
-            # Plot the smooth trend line
-            plt.plot(x_smoothed, y_smoothed, label=f"Node {node_id} Trend", linewidth=2)
-            # Optional: Plot raw data faintly in the background
-            plt.plot(x, y, alpha=0.1, color=plt.gca().get_lines()[-1].get_color())
-        else:
-            plt.plot(x, y, label=f"Node {node_id} (Insuff. Data)", alpha=0.5)
+        # We will plot BOTH weights for each pair
+        weights = {
+            'W_LQ': (np.array(data[pair_key]['w_lq']), '-'),  # Solid line
+            'W_Energy': (np.array(data[pair_key]['w_e']), '--') # Dashed line
+        }
+        
+        for weight_name, (y, style) in weights.items():
+            if len(y) > window_size:
+                y_smoothed = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
+                x_smoothed = x[window_size-1:]
+                
+                label = f"Node {src}->P{parent} ({weight_name})"
+                line = plt.plot(x_smoothed, y_smoothed, label=label, linestyle=style, linewidth=2)
+                
+                # Plot raw data faintly
+                plt.plot(x, y, alpha=0.05, color=line[0].get_color())
+            else:
+                plt.plot(x, y, label=f"{src}->P{parent} {weight_name} (Insuff.)", alpha=0.3, linestyle=style)
 
-    plt.axhline(y=50, color='black', linestyle='--', alpha=0.3, label="Initial Weight")
+    # Threshold lines
+    plt.axhline(y=40, color='red', linestyle=':', alpha=0.5, label="Floor (40)")
+    plt.axhline(y=200, color='green', linestyle=':', alpha=0.5, label="Ceiling (200)")
     
-    plt.title(f"SARSA Learning Progress (Moving Average n={window_size})", fontsize=14)
-    plt.xlabel("Transmission Events (Learning Steps)", fontsize=12)
-    plt.ylabel("Learned Weight (W_LQ)", fontsize=12)
-    plt.legend(loc='upper left')
+    plt.title(f"SARSA Dual-Feature Convergence (n={window_size})", fontsize=14)
+    plt.xlabel("Transmission Events (per Parent Pair)", fontsize=12)
+    plt.ylabel("Learned Weights", fontsize=12)
+    
+    # Place legend outside to avoid covering data
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
     plt.grid(True, which='both', linestyle='--', alpha=0.5)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "sarsa_trend.png"))
-    print("Trend plot saved as sarsa_trend.png")
+    output_path = os.path.join(SCRIPT_DIR, "sarsa_dual_trend.png")
+    plt.savefig(output_path)
+    print(f"Trend plot saved as {output_path}")
     plt.show()
 
 if __name__ == "__main__":
