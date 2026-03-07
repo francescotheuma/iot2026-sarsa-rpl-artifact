@@ -202,7 +202,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   else if(raw_etx >= 2560) f_link_quality = 0;
   else f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
 
-  int32_t f_energy = (int32_t)data->energy_level;
+  int32_t f_energy = parent_battery;
 
   int32_t old_predicted_q = data->q_value; 
 
