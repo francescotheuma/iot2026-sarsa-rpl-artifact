@@ -6,6 +6,9 @@
 #include "sys/energest.h"
 #include "random.h" 
 
+/* for energest battery drain*/
+#define DRAIN_MAGNITUDE 500
+
 /* Log configuration */
 #define LOG_MODULE "RPL-SARSA"
 #define LOG_LEVEL LOG_LEVEL_INFO
@@ -28,11 +31,35 @@
 // Struct to house the SARSA-related node values
 typedef struct {
   int32_t q_value;      
+  int32_t energy_level;
   /* Weights per neighbour*/
   int32_t w_lq; 
+  int32_t w_energy;
 } sarsa_nbr_t;
 
 NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory for the neighbours
+
+/* Function to get battery level*/
+static uint8_t 
+get_local_energy_est(void) {
+  energest_flush(); // forces update of tick counts
+  
+  uint64_t tx_ticks = energest_type_time(ENERGEST_TYPE_TRANSMIT);
+  uint64_t rx_ticks = energest_type_time(ENERGEST_TYPE_LISTEN);
+  uint64_t cpu_ticks = energest_type_time(ENERGEST_TYPE_CPU);
+  
+  uint64_t simulated_rx_ticks = rx_ticks / 100;
+  uint64_t total_consumption = (tx_ticks + simulated_rx_ticks + cpu_ticks) * DRAIN_MAGNITUDE;
+  
+  uint64_t battery_max = 1000000000ULL; //Crazy math
+  long drain = total_consumption / (battery_max / 100);
+  long remaining = 100 - drain;
+
+  if(remaining < 0) return 0;
+  if(remaining > 100) return 100;
+
+  return (uint8_t)remaining;
+}
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -56,6 +83,7 @@ get_sarsa_data(rpl_nbr_t *nbr)
     if(s_data != NULL) {
       s_data->q_value = 0;
       s_data->w_lq = 50;
+      s_data->w_energy = 50;
     }
   }
   return s_data;
@@ -100,19 +128,32 @@ nbr_is_acceptable_parent(rpl_nbr_t *nbr)
   return nbr_has_usable_link(nbr) && nbr_path_cost(nbr) <= MAX_PATH_COST;
 }
 
-#include "net/ipv6/uip-ds6-nbr.h"
-
-
 /*---------------------------------------------------------------------------*/
 static void
 update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 {
   if(nbr == NULL || data == NULL) return; 
 
-  /* We ONLY update the Q-value here. The weights are updated by the MAC callback. */
-  data->q_value = data->w_lq; 
+  int32_t f_energy = (int32_t)data->energy_level;
+  int32_t raw_etx = (int32_t)nbr_link__metric(nbr);
+  int32_t f_link_quality;
+
+  // Normalise ETX from 0-100
+
+  if(raw_etx <= 512) f_link_quality = 100;
+  else if (raw_etx >=2560) f_link_quality = 0;
+  else f_link_quality = 100 - (((raw_etx - 512) * 100) / (2048));
+
+  int32_t total_weight = data->w_energy + data->w_lq;
+
+
+  /* Comine features into q-value for neighbour */
+  data->q_value = (data->w_lq * f_energy) + (data->w_lq * f_link_quality) / total_weight;
 }
 /*---------------------------------------------------------------------------*/
+
+#include "net/ipv6/uip-ds6-nbr.h" // for callback function to convert MAC address to RPL neighbour
+
 /*---------------------------------------------------------------------------*/
 void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx) 
 {
@@ -140,13 +181,14 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   /* 3. The True Environmental Reward */
   int32_t reward = 0;
+  int32_t parent_battery = (int32_t)data->energy_level;
 
   if(status == MAC_TX_OK) {
     // Reward changes based on parent battery level to encourage energy balancing
-      reward = 80;  
+      reward = (80 * parent_battery) / 100;  
       
       if(numtx > 1){
-        reward -= 10*numtx;
+        reward -= (10*numtx);
       }
   } else {
       reward = -20; // Massive penalty for dropped packet
@@ -158,6 +200,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if(raw_etx <= 512) f_link_quality = 100;
   else if(raw_etx >= 2560) f_link_quality = 0;
   else f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
+
+  int32_t f_energy = (int32_t)data->energy_level;
 
   int32_t old_predicted_q = data->q_value; 
 
@@ -174,16 +218,20 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   /* 7. Update Global Policy Weights */
   data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 100);
+  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 100);
 
   /* Soft bounds to prevent weights from exploding/dying */
   if(data->w_lq < 40) data->w_lq = 40;
+  if(data->w_energy < 40) data->w_energy = 40;
   if (data->w_lq > 200) data->w_lq = 200;
+  if (data->w_energy > 200) data->w_energy = 200;
+
 
   uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
 
-  LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d\n",
+  LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_Energy: %d | My_batt: %d | Parent_batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)nbr_id, (int)reward, (int)td_error, (int)data->w_lq);
+           (int)nbr_id, (int)reward, (int)td_error, (int)data->w_lq, (int)data->w_energy, (get_local_energy_est()),(int)parent_battery);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -198,6 +246,9 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 
   sarsa_nbr_t *d1 = get_sarsa_data(p1);
   sarsa_nbr_t *d2 = get_sarsa_data(p2);
+
+  if(p1 != NULL && d1 != NULL) d1->energy_level = p1->mc.obj.energy.energy_est;
+  if(p2 != NULL && d2 != NULL) d2->energy_level = p2->mc.obj.energy.energy_est;
 
   if(d1) update_q_value(p1, d1);
   if(d2) update_q_value(p2, d2);
@@ -226,6 +277,10 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 static void
 update_metric_container(void)
 {
+  curr_instance.mc.type = RPL_DAG_MC_ENERGY;
+  curr_instance.mc.length = sizeof(curr_instance.mc.obj.energy);
+  curr_instance.mc.obj.energy.energy_est = get_local_energy_est();
+  curr_instance.mc.obj.energy.flags = RPL_DAG_MC_ENERGY_TYPE_BATTERY << RPL_DAG_MC_ENERGY_TYPE;
 }
 
 /*---------------------------------------------------------------------------*/
