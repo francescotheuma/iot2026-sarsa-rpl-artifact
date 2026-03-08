@@ -1,102 +1,167 @@
 import matplotlib.pyplot as plt
-import re
-from collections import defaultdict
-import os
+import pandas as pd
 import numpy as np
+import re
+import os
+from collections import defaultdict
 
-# Get script directory
+# --- Config ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Adjusted path based on your previous snippet
+
 LOG_FILE = os.path.join(SCRIPT_DIR, "..", "..", "tools", "cooja", "cooja.log")
 
-def parse_sarsa_logs():
-    # We now store: w_lq, w_energy, and parent_batt for every (src, parent) pair
-    data = defaultdict(lambda: {'x': [], 'w_lq': [], 'w_e': [], 'p_batt': []})
-    event_counters = defaultdict(int)
-    
-    # NEW REGEX: Matches your new LOG_INFO format
-    # ID:3 ... MAC REWARD: OK | Parent: 1 | Rew: 80 | TD_Err: 86 | W_LQ: 18 | W_Energy: 50 | My_batt: 100 | Parent_batt: 100
+def extract_log_data(filepath):
+    """
+    Parses the Cooja log and builds a Pandas DataFrame
+    """
+
     pattern = re.compile(
-        r"ID:(?P<id>\d+).*?Parent:\s*(?P<parent>\d+).*?W_LQ:\s*(?P<w_lq>\d+).*?W_Energy:\s*(?P<w_e>\d+).*?Parent_batt:\s*(?P<p_batt>\d+)"
+        r"ID:(?P<id>\d+).*?Parent:\s*(?P<parent>\d+).*?Rew:\s*(?P<rew>-?\d+).*?"
+        r"TD_Err:\s*(?P<td_err>-?\d+).*?W_LQ:\s*(?P<w_lq>\d+).*?"
+        r"W_Energy:\s*(?P<w_e>\d+).*?Parent_batt:\s*(?P<p_batt>\d+)"
     )
 
-    try:
-        if not os.path.exists(LOG_FILE):
-             print(f"Error: {LOG_FILE} not found!")
-             return None
-             
-        with open(LOG_FILE, 'r') as f:
-            for line in f:
-                if "MAC REWARD" in line:
-                    match = pattern.search(line)
-                    if match:
-                        src_id = match.group('id')
-                        parent_id = match.group('parent')
-                        
-                        # Create a unique key for each pair: e.g., "3->1"
-                        pair_key = (src_id, parent_id)
-                        
-                        event_counters[pair_key] += 1
-                        data[pair_key]['x'].append(event_counters[pair_key])
-                        data[pair_key]['w_lq'].append(int(match.group('w_lq')))
-                        data[pair_key]['w_e'].append(int(match.group('w_e')))
-                        data[pair_key]['p_batt'].append(int(match.group('p_batt')))
-                        
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-    return data
+    records = []
+    global_tx_counter = defaultdict(int)
 
-def plot_convergence(data):
-    if not data:
-        print("No data found.")
-        return
-
-    plt.figure(figsize=(14, 8))
-    window_size = 25 
-
-    # Sort keys by source then parent for a clean legend
-    for pair_key in sorted(data.keys()):
-        src, parent = pair_key
-        x = np.array(data[pair_key]['x'])
-        
-        # We will plot BOTH weights for each pair
-        weights = {
-            'W_LQ': (np.array(data[pair_key]['w_lq']), '-'),  # Solid line
-            'W_Energy': (np.array(data[pair_key]['w_e']), '--') # Dashed line
-        }
-        
-        for weight_name, (y, style) in weights.items():
-            if len(y) > window_size:
-                y_smoothed = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
-                x_smoothed = x[window_size-1:]
-                
-                label = f"Node {src}->P{parent} ({weight_name})"
-                line = plt.plot(x_smoothed, y_smoothed, label=label, linestyle=style, linewidth=2)
-                
-                # Plot raw data faintly
-                plt.plot(x, y, alpha=0.05, color=line[0].get_color())
-            else:
-                plt.plot(x, y, label=f"{src}->P{parent} {weight_name} (Insuff.)", alpha=0.3, linestyle=style)
-
-    # Threshold lines
-    plt.axhline(y=40, color='red', linestyle=':', alpha=0.5, label="Floor (40)")
-    plt.axhline(y=200, color='green', linestyle=':', alpha=0.5, label="Ceiling (200)")
+    if not os.path.exists(filepath):
+        print("Error: Could not find {filepath}")
+        return pd.DataFrame()
     
-    plt.title(f"SARSA Dual-Feature Convergence (n={window_size})", fontsize=14)
-    plt.xlabel("Transmission Events (per Parent Pair)", fontsize=12)
-    plt.ylabel("Learned Weights", fontsize=12)
+    with open(filepath, 'r') as f:
+        for line in f:
+            if "MAC REWARD" in line:
+                match = pattern.search(line)
+                if match:
+                    src_id = int(match.group('id'))
+                    global_tx_counter[src_id] += 1 # Increment global timeline
+
+                    records.append({
+                        'src': src_id,
+                        'parent': int(match.group('parent')),
+                        'tx_num': global_tx_counter[src_id],
+                        'w_lq': int(match.group('w_lq')),
+                        'w_e': int(match.group('w_e')),
+                        'td_err': int(match.group('td_err')),
+                        'p_batt': int(match.group('p_batt')),
+                        'rew': int(match.group('rew'))
+                    })
+    return pd.DataFrame(records)
+
+def plot_weight_vs_battery(df, target_node=3):
+    """
+    PLOT 1: The 'Hero Plot'. Dual-pane graph showing causality.
+    Top pane: Parent Battery Depletion.
+    Bottom pane: The RL Agent adapting the weights in response.
+    """
+    node_data = df[df['src'] == target_node]
+    if node_data.empty: return
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
     
-    # Place legend outside to avoid covering data
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
-    plt.grid(True, which='both', linestyle='--', alpha=0.5)
+    # We will plot lines for each parent it interacted with
+    parents = node_data['parent'].unique()
+    colors = {1: 'blue', 2: 'red', 3: 'green'} # Assign stable colors
+    
+    for p in parents:
+        p_data = node_data[node_data['parent'] == p]
+        c = colors.get(p, 'black')
+        
+        # Top Pane: Battery
+        ax1.plot(p_data['tx_num'], p_data['p_batt'], label=f'Parent {p} Battery', color=c, marker='o', markersize=3, linestyle='-')
+        
+        # Bottom Pane: Weights
+        ax2.plot(p_data['tx_num'], p_data['w_lq'], label=f'Parent {p} W_LQ', color=c, linestyle='-', alpha=0.8)
+        ax2.plot(p_data['tx_num'], p_data['w_e'], label=f'Parent {p} W_Energy', color=c, linestyle='--', alpha=0.8)
+
+    # Styling Top Pane (Battery)
+    ax1.set_title(f"Node {target_node}: Environmental Change (Battery Drain)", fontsize=14)
+    ax1.set_ylabel("Battery %")
+    ax1.set_ylim(0, 105)
+    ax1.grid(True, linestyle='--', alpha=0.6)
+    ax1.legend(loc="lower left")
+
+    # Styling Bottom Pane (Weights)
+    ax2.set_title(f"Node {target_node}: RL Agent Weight Adaptation (Parameter Saturation)", fontsize=14)
+    ax2.set_ylabel("Weight Value")
+    ax2.set_xlabel("Global Transmission Event (Timeline)")
+    ax2.axhline(y=200, color='red', linestyle=':', label='Ceiling Bound (200)')
+    ax2.axhline(y=50, color='gray', linestyle=':', label='Initial Value (50)')
+    ax2.grid(True, linestyle='--', alpha=0.6)
+    ax2.legend(loc="upper left")
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_1_weights_vs_battery.png"), dpi=300)
+    print("Saved: plot_1_weights_vs_battery.png")
+
+def plot_td_error_convergence(df, target_node=3):
+    """
+    PLOT 2: The Mathematical Proof of Convergence.
+    Shows the TD Error stabilizing at 0 for the optimal route.
+    """
+    node_data = df[df['src'] == target_node]
+    if node_data.empty: return
+
+    plt.figure(figsize=(10, 5))
+    parents = node_data['parent'].unique()
+    colors = {1: 'blue', 2: 'red'}
+
+    for p in parents:
+        p_data = node_data[node_data['parent'] == p]
+        plt.scatter(p_data['tx_num'], p_data['td_err'], label=f'Parent {p} TD Error', color=colors.get(p, 'black'), alpha=0.6, s=15)
+
+    plt.axhline(y=0, color='green', linestyle='-', linewidth=2, label='Perfect Convergence (0)')
+    
+    plt.title(f"Node {target_node}: Temporal Difference (TD) Error over Time", fontsize=14)
+    plt.xlabel("Global Transmission Event (Timeline)")
+    plt.ylabel("TD Error")
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend()
     
     plt.tight_layout()
-    output_path = os.path.join(SCRIPT_DIR, "plot.png")
-    plt.savefig(output_path)
-    print(f"Trend plot saved as {output_path}")
-    plt.show()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_2_td_error.png"), dpi=300)
+    print("Saved: plot_2_td_error.png")
+
+def plot_parent_selection(df, target_node=3):
+    """
+    PLOT 3: The Routing Result.
+    A scatter plot showing exactly which parent the node picked at what time.
+    """
+    node_data = df[df['src'] == target_node]
+    if node_data.empty: return
+
+    plt.figure(figsize=(10, 4))
+    
+    parents = sorted(node_data['parent'].unique())
+    
+    # Plotting each choice as a vertical tick
+    for p in parents:
+        p_data = node_data[node_data['parent'] == p]
+        plt.plot(p_data['tx_num'], p_data['parent'], '|', markersize=20, label=f'Selected Parent {p}', color='blue' if p==1 else 'red')
+
+    plt.yticks(parents, [f'Parent {p}' for p in parents])
+    plt.title(f"Node {target_node}: Parent Selection Timeline (Exploitation vs Exploration)", fontsize=14)
+    plt.xlabel("Global Transmission Event (Timeline)")
+    plt.grid(True, axis='x', linestyle='--', alpha=0.6)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_3_selection.png"), dpi=300)
+    print("Saved: plot_3_selection.png")
 
 if __name__ == "__main__":
-    sarsa_data = parse_sarsa_logs()
-    plot_convergence(sarsa_data)
+    # 1. Extract data
+    print("Extracting data from logs...")
+    df_sarsa = extract_log_data(LOG_FILE)
+    
+    if not df_sarsa.empty:
+        print(f"Successfully extracted {len(df_sarsa)} transmission records.")
+        
+        # 2. Generate thesis plots
+        plot_weight_vs_battery(df_sarsa, target_node=3)
+        plot_td_error_convergence(df_sarsa, target_node=3)
+        plot_parent_selection(df_sarsa, target_node=3)
+        
+        print("All plots generated successfully!")
+    else:
+        print("Failed to generate plots.")
