@@ -48,7 +48,7 @@ def extract_log_data(filepath):
                     })
     return pd.DataFrame(records)
 
-def plot_weight_vs_battery(df, target_node=3):
+def plot_weight_vs_battery(df, target_node):
     """
     PLOT 1: The 'Hero Plot'. Dual-pane graph showing causality.
     Top pane: Parent Battery Depletion.
@@ -91,10 +91,10 @@ def plot_weight_vs_battery(df, target_node=3):
     ax2.legend(loc="upper left")
 
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "plot_1_weights_vs_battery.png"), dpi=300)
+    plt.savefig(os.path.join(SCRIPT_DIR, f"plot_1_weights_vs_battery{target_node}.png"), dpi=300)
     print("Saved: plot_1_weights_vs_battery.png")
 
-def plot_td_error_convergence(df, target_node=3):
+def plot_td_error_convergence(df, target_node):
     """
     PLOT 2: The Mathematical Proof of Convergence.
     Shows the TD Error stabilizing at 0 for the optimal route.
@@ -119,10 +119,10 @@ def plot_td_error_convergence(df, target_node=3):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "plot_2_td_error.png"), dpi=300)
+    plt.savefig(os.path.join(SCRIPT_DIR, f"plot_2_td_error{target_node}.png"), dpi=300)
     print("Saved: plot_2_td_error.png")
 
-def plot_parent_selection(df, target_node=3):
+def plot_parent_selection(df, target_node):
     """
     PLOT 3: The Routing Result.
     A scatter plot showing exactly which parent the node picked at what time.
@@ -146,7 +146,7 @@ def plot_parent_selection(df, target_node=3):
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "plot_3_selection.png"), dpi=300)
+    plt.savefig(os.path.join(SCRIPT_DIR, f"plot_3_selection{target_node}.png"), dpi=300)
     print("Saved: plot_3_selection.png")
 
 if __name__ == "__main__":
@@ -158,9 +158,9 @@ if __name__ == "__main__":
         print(f"Successfully extracted {len(df_sarsa)} transmission records.")
         
         # 2. Generate thesis plots
-        plot_weight_vs_battery(df_sarsa, target_node=3)
-        plot_td_error_convergence(df_sarsa, target_node=3)
-        plot_parent_selection(df_sarsa, target_node=3)
+        plot_weight_vs_battery(df_sarsa, target_node=2)
+        plot_td_error_convergence(df_sarsa, target_node=2)
+        plot_parent_selection(df_sarsa, target_node=2)
         
         print("All plots generated successfully!")
     else:
