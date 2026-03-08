@@ -122,32 +122,6 @@ def plot_td_error_convergence(df, target_node):
     plt.savefig(os.path.join(SCRIPT_DIR, f"plot_2_td_error{target_node}.png"), dpi=300)
     print("Saved: plot_2_td_error.png")
 
-def plot_parent_selection(df, target_node):
-    """
-    PLOT 3: The Routing Result.
-    A scatter plot showing exactly which parent the node picked at what time.
-    """
-    node_data = df[df['src'] == target_node]
-    if node_data.empty: return
-
-    plt.figure(figsize=(10, 4))
-    
-    parents = sorted(node_data['parent'].unique())
-    
-    # Plotting each choice as a vertical tick
-    for p in parents:
-        p_data = node_data[node_data['parent'] == p]
-        plt.plot(p_data['tx_num'], p_data['parent'], '|', markersize=20, label=f'Selected Parent {p}', color='blue' if p==1 else 'red')
-
-    plt.yticks(parents, [f'Parent {p}' for p in parents])
-    plt.title(f"Node {target_node}: Parent Selection Timeline (Exploitation vs Exploration)", fontsize=14)
-    plt.xlabel("Global Transmission Event (Timeline)")
-    plt.grid(True, axis='x', linestyle='--', alpha=0.6)
-    plt.legend()
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, f"plot_3_selection{target_node}.png"), dpi=300)
-    print("Saved: plot_3_selection.png")
 
 if __name__ == "__main__":
     # 1. Extract data
@@ -158,9 +132,8 @@ if __name__ == "__main__":
         print(f"Successfully extracted {len(df_sarsa)} transmission records.")
         
         # 2. Generate thesis plots
-        plot_weight_vs_battery(df_sarsa, target_node=2)
-        plot_td_error_convergence(df_sarsa, target_node=2)
-        plot_parent_selection(df_sarsa, target_node=2)
+        plot_weight_vs_battery(df_sarsa, target_node=3)
+        plot_td_error_convergence(df_sarsa, target_node=3)
         
         print("All plots generated successfully!")
     else:
