@@ -4,10 +4,10 @@
 /* Tell the node to use Objective Function 10 (SARSA) */
 #undef RPL_CONF_OF_OCP
 #define RPL_CONF_OF_OCP 10
+#define SARSA_ENABLED
 
 #define RPL_CONF_WITH_MC 1
 
 /* Turn on the Energy Tracker*/
 #define ENERGEST_CONF_ON 1
 
-#define SARSA_ENABLED 1 

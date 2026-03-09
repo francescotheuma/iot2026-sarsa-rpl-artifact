@@ -3,19 +3,12 @@
 #include "net/link-stats.h"
 #include "sys/log.h"
 #include "sys/clock.h" 
-#include "sys/energest.h"
 #include "random.h" 
-
-/* for energest battery drain*/
-#define DRAIN_MAGNITUDE 500
+#include "battery.h"
 
 /* Log configuration */
 #define LOG_MODULE "RPL-SARSA"
 #define LOG_LEVEL LOG_LEVEL_INFO
-
-#ifndef RPL_OCP_SARSA
-#define RPL_OCP_SARSA 10
-#endif
 
 #ifndef NBR_TABLE_REASON_RPL_LITE
 #define NBR_TABLE_REASON_RPL_LITE NBR_TABLE_REASON_MAC
@@ -39,27 +32,6 @@ typedef struct {
 
 NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory for the neighbours
 
-/* Function to get battery level*/
-static uint8_t 
-get_local_energy_est(void) {
-  energest_flush(); // forces update of tick counts
-  
-  uint64_t tx_ticks = energest_type_time(ENERGEST_TYPE_TRANSMIT);
-  uint64_t rx_ticks = energest_type_time(ENERGEST_TYPE_LISTEN);
-  uint64_t cpu_ticks = energest_type_time(ENERGEST_TYPE_CPU);
-  
-  uint64_t simulated_rx_ticks = rx_ticks / 100;
-  uint64_t total_consumption = (tx_ticks + simulated_rx_ticks + cpu_ticks) * DRAIN_MAGNITUDE;
-  
-  uint64_t battery_max = 1000000000ULL; //Crazy math
-  long drain = total_consumption / (battery_max / 100);
-  long remaining = 100 - drain;
-
-  if(remaining < 0) return 0;
-  if(remaining > 100) return 100;
-
-  return (uint8_t)remaining;
-}
 
 /*---------------------------------------------------------------------------*/
 static void
