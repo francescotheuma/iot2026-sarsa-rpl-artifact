@@ -8,7 +8,8 @@ from collections import defaultdict
 # --- Config ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-LOG_FILE = os.path.join(SCRIPT_DIR, "..", "..", "tools", "cooja", "cooja.log")
+LOG_FILE_SARSA = os.path.join(SCRIPT_DIR, "..", "..", "tools", "cooja", "cooja_sarsa.log")
+LOG_FILE_MRHOF = os.path.join(SCRIPT_DIR, "..", "..", "tools", "cooja", "cooja_mrhof.log")
 
 def extract_log_data(filepath):
     """
@@ -122,19 +123,93 @@ def plot_td_error_convergence(df, target_node):
     plt.savefig(os.path.join(SCRIPT_DIR, f"plot_2_td_error{target_node}.png"), dpi=300)
     print("Saved: plot_2_td_error.png")
 
+def extract_battery_samples(filepath):
+    """
+    Parses periodic battery log samples from a Cooja log file.
+    Expects lines with format: "BATTERY_SAMPLE: node=X, batt=XX"
+    Returns a DataFrame with columns: [node, sample_idx, batt]
+    """
+    pattern = re.compile(r"BATTERY_SAMPLE:\s*node=(?P<node>\d+),\s*batt=(?P<batt>\d+)")
+    
+    records = []
+    
+    if not os.path.exists(filepath):
+        print(f"Error: Could not find {filepath}")
+        return pd.DataFrame()
+    
+    with open(filepath, 'r') as f:
+        for line in f:
+            if "BATTERY_SAMPLE" in line:
+                match = pattern.search(line)
+                if match:
+                    node_id = int(match.group('node'))
+                    batt = int(match.group('batt'))
+                    records.append({
+                        'node': node_id,
+                        'batt': batt
+                    })
+    
+    # Add sample index per node
+    df = pd.DataFrame(records)
+    if not df.empty:
+        df['sample_idx'] = df.groupby('node').cumcount() + 1
+    
+    return df
+
+def plot_battery_comparison(df_sarsa, df_mrhof):
+    """
+    PLOT 3: Battery drain comparison between SARSA and MRHOF.
+    Shows battery depletion per node for both objective functions.
+    """
+    plt.figure(figsize=(14, 7))
+    
+    # Plot SARSA nodes
+    if not df_sarsa.empty:
+        for node in sorted(df_sarsa['node'].unique()):
+            node_data = df_sarsa[df_sarsa['node'] == node]
+            plt.plot(node_data['sample_idx'], node_data['batt'], 
+                    label=f'SARSA Node {node}', marker='o', markersize=3, linestyle='-', linewidth=2, alpha=0.8)
+    
+    # Plot MRHOF nodes
+    if not df_mrhof.empty:
+        for node in sorted(df_mrhof['node'].unique()):
+            node_data = df_mrhof[df_mrhof['node'] == node]
+            plt.plot(node_data['sample_idx'], node_data['batt'], 
+                    label=f'MRHOF Node {node}', marker='s', markersize=3, linestyle='--', linewidth=2, alpha=0.8)
+    
+    plt.title("Battery Drain: SARSA vs MRHOF (Per Node)", fontsize=14)
+    plt.xlabel("Sample Index", fontsize=12)
+    plt.ylabel("Battery Level (%)", fontsize=12)
+    plt.ylim(0, 105)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend(fontsize=10, loc='best')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_3_battery_comparison.png"), dpi=300)
+    print("Saved: plot_3_battery_comparison.png")
 
 if __name__ == "__main__":
-    # 1. Extract data
-    print("Extracting data from logs...")
-    df_sarsa = extract_log_data(LOG_FILE)
+    # 1. Extract MAC reward data (SARSA only)
+    print("Extracting SARSA MAC reward data...")
+    df_sarsa_mac = extract_log_data(LOG_FILE_SARSA)
     
-    if not df_sarsa.empty:
-        print(f"Successfully extracted {len(df_sarsa)} transmission records.")
-        
-        # 2. Generate thesis plots
-        plot_weight_vs_battery(df_sarsa, target_node=3)
-        plot_td_error_convergence(df_sarsa, target_node=3)
-        
-        print("All plots generated successfully!")
+    if not df_sarsa_mac.empty:
+        print(f"Successfully extracted {len(df_sarsa_mac)} SARSA transmission records.")
+        plot_weight_vs_battery(df_sarsa_mac, target_node=3)
+        plot_td_error_convergence(df_sarsa_mac, target_node=3)
     else:
-        print("Failed to generate plots.")
+        print("Warning: No SARSA MAC reward data found.")
+    
+    # 2. Extract periodic battery samples
+    print("\nExtracting periodic battery samples...")
+    df_battery_sarsa = extract_battery_samples(LOG_FILE_SARSA)
+    df_battery_mrhof = extract_battery_samples(LOG_FILE_MRHOF)
+    
+    if not df_battery_sarsa.empty or not df_battery_mrhof.empty:
+        print(f"SARSA: {len(df_battery_sarsa)} battery samples")
+        print(f"MRHOF: {len(df_battery_mrhof)} battery samples")
+        plot_battery_comparison(df_battery_sarsa, df_battery_mrhof)
+    else:
+        print("Warning: No periodic battery samples found in logs.")
+    
+    print("\nAll plots generated successfully!")

@@ -5,6 +5,7 @@
 #include "net/ipv6/simple-udp.h"
 #include <stdint.h>
 #include <inttypes.h>
+#include <battery.h>
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -51,6 +52,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
   static uint32_t missed_tx_count;
 
   PROCESS_BEGIN();
+
+  battery_init(); // To log battery for graph comparisons between OFs
 
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,

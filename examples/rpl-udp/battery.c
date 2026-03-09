@@ -1,8 +1,18 @@
-#include "contiki.h"
 #include "energest.h"
+#include "sys/clock.h"
+#include "sys/ctimer.h"
+#include "sys/log.h"
+#include "net/linkaddr.h"
+
+#define LOG_MODULE "Battery"
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 /* for energest battery drain*/
 #define DRAIN_MAGNITUDE 500
+#define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
+
+static struct ctimer battery_timer;
+static uint8_t battery_log_initialized = 0;
 
 /* Function to get battery level*/
  uint8_t 
@@ -24,4 +34,20 @@
   if(remaining > 100) return 100;
 
   return (uint8_t)remaining;
+}
+
+static void
+battery_log_callback(void *ptr)
+{
+    uint8_t batt = get_local_energy_est();
+    uint8_t node_id = linkaddr_node_addr.u8[LINKADDR_SIZE - 1];
+    LOG_INFO("BATTERY_SAMPLE: node=%d, batt=%d\n", node_id, batt);
+    ctimer_reset(&battery_timer);
+}
+
+void
+battery_init(void){
+    if(!battery_log_initialized){
+        ctimer_set(&battery_timer, BATTERY_LOG_INTERVAL,battery_log_callback,NULL);
+    }
 }
