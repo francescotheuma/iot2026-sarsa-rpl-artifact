@@ -126,10 +126,13 @@ def plot_td_error_convergence(df, target_node):
 def extract_battery_samples(filepath):
     """
     Parses periodic battery log samples from a Cooja log file.
-    Expects lines with format: "BATTERY_SAMPLE: node=X, batt=XX"
-    Returns a DataFrame with columns: [node, sample_idx, batt]
+    Expects lines with format: "BATTERY_SAMPLE: node=X, batt=XX, TX=X, RX=X, CPU=X"
     """
-    pattern = re.compile(r"BATTERY_SAMPLE:\s*node=(?P<node>\d+),\s*batt=(?P<batt>\d+)")
+    # Updated regex to capture all the new hardware ticks
+    pattern = re.compile(
+        r"BATTERY_SAMPLE:\s*node=(?P<node>\d+),\s*batt=(?P<batt>\d+),\s*"
+        r"TX=(?P<tx>\d+),\s*RX=(?P<rx>\d+),\s*CPU=(?P<cpu>\d+)"
+    )
     
     records = []
     
@@ -142,14 +145,14 @@ def extract_battery_samples(filepath):
             if "BATTERY_SAMPLE" in line:
                 match = pattern.search(line)
                 if match:
-                    node_id = int(match.group('node'))
-                    batt = int(match.group('batt'))
                     records.append({
-                        'node': node_id,
-                        'batt': batt
+                        'node': int(match.group('node')),
+                        'batt': int(match.group('batt')),
+                        'tx': int(match.group('tx')),
+                        'rx': int(match.group('rx')),
+                        'cpu': int(match.group('cpu'))
                     })
     
-    # Add sample index per node
     df = pd.DataFrame(records)
     if not df.empty:
         df['sample_idx'] = df.groupby('node').cumcount() + 1
@@ -188,6 +191,49 @@ def plot_battery_comparison(df_sarsa, df_mrhof):
     plt.savefig(os.path.join(SCRIPT_DIR, "plot_3_battery_comparison.png"), dpi=300)
     print("Saved: plot_3_battery_comparison.png")
 
+def plot_hardware_ticks_comparison(df_sarsa, df_mrhof, target_node=3):
+        """
+        PLOT 4: Hardware Ticks comparison between SARSA and MRHOF.
+        Creates a 3-pane plot (TX, RX, CPU) to diagnose exact battery drain causes.
+        """
+        s_data = df_sarsa[df_sarsa['node'] == target_node] if not df_sarsa.empty else pd.DataFrame()
+        m_data = df_mrhof[df_mrhof['node'] == target_node] if not df_mrhof.empty else pd.DataFrame()
+        
+        if s_data.empty and m_data.empty: 
+            return
+            
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+        
+        # --- Pane 1: TX Ticks ---
+        if not s_data.empty: ax1.plot(s_data['sample_idx'], s_data['tx'], label='SARSA TX', color='blue', linewidth=2)
+        if not m_data.empty: ax1.plot(m_data['sample_idx'], m_data['tx'], label='MRHOF TX', color='red', linestyle='--', linewidth=2)
+        ax1.set_title(f"Node {target_node}: Transmission (TX) Energest Ticks", fontsize=12)
+        ax1.set_ylabel("Cumulative Ticks")
+        ax1.grid(True, linestyle='--', alpha=0.6)
+        ax1.legend(loc="upper left")
+        
+        # --- Pane 2: RX Ticks ---
+        if not s_data.empty: ax2.plot(s_data['sample_idx'], s_data['rx'], label='SARSA RX', color='blue', linewidth=2)
+        if not m_data.empty: ax2.plot(m_data['sample_idx'], m_data['rx'], label='MRHOF RX', color='red', linestyle='--', linewidth=2)
+        ax2.set_title(f"Node {target_node}: Listening/Reception (RX) Energest Ticks", fontsize=12)
+        ax2.set_ylabel("Cumulative Ticks")
+        ax2.grid(True, linestyle='--', alpha=0.6)
+        ax2.legend(loc="upper left")
+        
+        # --- Pane 3: CPU Ticks ---
+        if not s_data.empty: ax3.plot(s_data['sample_idx'], s_data['cpu'], label='SARSA CPU', color='blue', linewidth=2)
+        if not m_data.empty: ax3.plot(m_data['sample_idx'], m_data['cpu'], label='MRHOF CPU', color='red', linestyle='--', linewidth=2)
+        ax3.set_title(f"Node {target_node}: Processing (CPU) Energest Ticks", fontsize=12)
+        ax3.set_xlabel("Sample Index (Time - 10s intervals)", fontsize=12)
+        ax3.set_ylabel("Cumulative Ticks")
+        ax3.grid(True, linestyle='--', alpha=0.6)
+        ax3.legend(loc="upper left")
+        
+        plt.tight_layout()
+        filename = f"plot_4_hardware_ticks_node{target_node}.png"
+        plt.savefig(os.path.join(SCRIPT_DIR, filename), dpi=300)
+        print(f"Saved: {filename}")
+
 if __name__ == "__main__":
     # 1. Extract MAC reward data (SARSA only)
     print("Extracting SARSA MAC reward data...")
@@ -208,7 +254,23 @@ if __name__ == "__main__":
     if not df_battery_sarsa.empty or not df_battery_mrhof.empty:
         print(f"SARSA: {len(df_battery_sarsa)} battery samples")
         print(f"MRHOF: {len(df_battery_mrhof)} battery samples")
+        
+        # Generate the overall battery comparison plot
         plot_battery_comparison(df_battery_sarsa, df_battery_mrhof)
+        
+        # --- NEW: Generate hardware tick comparisons for each active node ---
+        active_nodes = set()
+        if not df_battery_sarsa.empty: 
+            active_nodes.update(df_battery_sarsa['node'].unique())
+        if not df_battery_mrhof.empty: 
+            active_nodes.update(df_battery_mrhof['node'].unique())
+        
+        print("\nGenerating hardware tick analysis plots...")
+        for node in active_nodes:
+            # We skip Node 1 if it's the sink/root (it doesn't have parents or make routing decisions)
+            if node != 1: 
+                plot_hardware_ticks_comparison(df_battery_sarsa, df_battery_mrhof, target_node=node)
+                
     else:
         print("Warning: No periodic battery samples found in logs.")
     
