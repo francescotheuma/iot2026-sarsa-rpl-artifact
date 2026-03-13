@@ -3,12 +3,14 @@
 #include "sys/ctimer.h"
 #include "sys/log.h"
 #include "net/linkaddr.h"
+#include "net/netstack.h"
+#include "net/routing/routing.h"
 
 #define LOG_MODULE "Battery"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 /* for energest battery drain*/
-#define DRAIN_MAGNITUDE 500
+#define DRAIN_MAGNITUDE 600
 #define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
 
 static struct ctimer battery_timer;
@@ -39,6 +41,13 @@ get_detailed_energy_est(void){
 
     if(remaining < 0) remaining = 0;
     if(remaining > 100) remaining = 100;
+
+    if(remaining == 0){
+        NETSTACK_MAC.off();
+        NETSTACK_ROUTING.leave_network();
+
+        return stats;
+    }
 
     stats.percentage = (uint8_t)remaining;
     return stats;
