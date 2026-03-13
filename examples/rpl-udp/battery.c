@@ -10,7 +10,7 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 /* for energest battery drain*/
-#define DRAIN_MAGNITUDE 600
+#define DRAIN_MAGNITUDE 200
 #define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
 
 static struct ctimer battery_timer;

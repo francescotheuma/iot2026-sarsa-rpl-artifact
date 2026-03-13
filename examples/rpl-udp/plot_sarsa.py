@@ -234,6 +234,50 @@ def plot_hardware_ticks_comparison(df_sarsa, df_mrhof, target_node=3):
         plt.savefig(os.path.join(SCRIPT_DIR, filename), dpi=300)
         print(f"Saved: {filename}")
 
+def plot_single_of_hardware_ticks(df, algo_name, target_node=3):
+    """
+    PLOT 4: Hardware Ticks for a single Objective Function.
+    Creates a 3-pane plot (TX, RX, CPU) to diagnose exact battery drain causes.
+    """
+    if df.empty:
+        return
+        
+    node_data = df[df['node'] == target_node]
+    
+    if node_data.empty: 
+        print(f"No data found for Node {target_node} under {algo_name}.")
+        return
+        
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+    
+    # --- Pane 1: TX Ticks ---
+    ax1.plot(node_data['sample_idx'], node_data['tx'], label=f'{algo_name} TX', color='blue', linewidth=2)
+    ax1.set_title(f"Node {target_node} ({algo_name}): Transmission (TX) Energest Ticks", fontsize=12)
+    ax1.set_ylabel("Cumulative Ticks")
+    ax1.grid(True, linestyle='--', alpha=0.6)
+    ax1.legend(loc="upper left")
+    
+    # --- Pane 2: RX Ticks ---
+    ax2.plot(node_data['sample_idx'], node_data['rx'], label=f'{algo_name} RX', color='green', linewidth=2)
+    ax2.set_title(f"Node {target_node} ({algo_name}): Listening/Reception (RX) Energest Ticks", fontsize=12)
+    ax2.set_ylabel("Cumulative Ticks")
+    ax2.grid(True, linestyle='--', alpha=0.6)
+    ax2.legend(loc="upper left")
+    
+    # --- Pane 3: CPU Ticks ---
+    ax3.plot(node_data['sample_idx'], node_data['cpu'], label=f'{algo_name} CPU', color='darkorange', linewidth=2)
+    ax3.set_title(f"Node {target_node} ({algo_name}): Processing (CPU) Energest Ticks", fontsize=12)
+    ax3.set_xlabel("Sample Index (Time - 10s intervals)", fontsize=12)
+    ax3.set_ylabel("Cumulative Ticks")
+    ax3.grid(True, linestyle='--', alpha=0.6)
+    ax3.legend(loc="upper left")
+    
+    plt.tight_layout()
+    # Adding algo_name to the file so it doesn't overwrite
+    filename = f"plot_4_hardware_ticks_node{target_node}_{algo_name.lower()}.png"
+    plt.savefig(os.path.join(SCRIPT_DIR, filename), dpi=300)
+    print(f"Saved: {filename}")
+
 def plot_network_battery_profile(df, algo_name):
     """
     PLOT 5: Network-wide Battery Profile.
@@ -283,29 +327,17 @@ if __name__ == "__main__":
     print("Extracting SARSA MAC reward data...")
     df_sarsa_mac = extract_log_data(LOG_FILE_SARSA)
     
-    if not df_sarsa_mac.empty:
-        print(f"Successfully extracted {len(df_sarsa_mac)} SARSA transmission records.")
-        plot_weight_vs_battery(df_sarsa_mac, target_node=3)
-        plot_td_error_convergence(df_sarsa_mac, target_node=3)
-    else:
-        print("Warning: No SARSA MAC reward data found.")
-    
     # 2. Extract periodic battery samples
     print("\nExtracting periodic battery samples...")
     df_battery_sarsa = extract_battery_samples(LOG_FILE_SARSA)
-    df_battery_mrhof = extract_battery_samples(LOG_FILE_MRHOF)
 
     if not df_battery_sarsa.empty or not df_battery_mrhof.empty:
         print(f"SARSA: {len(df_battery_sarsa)} battery samples")
-        print(f"MRHOF: {len(df_battery_mrhof)} battery samples")
         
-        # Your existing comparison plot
-        plot_battery_comparison(df_battery_sarsa, df_battery_mrhof)
         
         # --- NEW: Generate individual network profiles to prove Load Balancing ---
         if not df_battery_sarsa.empty:
+            plot_single_of_hardware_ticks(df_battery_sarsa, "SARSA", target_node=3)
             plot_network_battery_profile(df_battery_sarsa, "SARSA")
-        if not df_battery_mrhof.empty:
-            plot_network_battery_profile(df_battery_mrhof, "MRHOF")
     
     print("\nAll plots generated successfully!")

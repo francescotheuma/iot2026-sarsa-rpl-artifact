@@ -115,7 +115,7 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 
   if(raw_etx <= 512) f_link_quality = 100;
   else if (raw_etx >=2560) f_link_quality = 0;
-  else f_link_quality = 100 - (((raw_etx - 512) * 100) / (2048));
+  else f_link_quality = 100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
 
   int32_t total_weight = data->w_energy + data->w_lq;
 
@@ -158,7 +158,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   if(status == MAC_TX_OK) {
     // Reward changes based on parent battery level to encourage energy balancing
-      reward = (100 * parent_battery) / 100;  
+      reward = parent_battery;  
       
       if(numtx > 1){
         reward -= (10*numtx);
@@ -172,7 +172,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t f_link_quality;
   if(raw_etx <= 512) f_link_quality = 100;
   else if(raw_etx >= 2560) f_link_quality = 0;
-  else f_link_quality = 100 - (((raw_etx - 512) * 100) / (2560 - 512));
+  else f_link_quality = 100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
 
   int32_t f_energy = parent_battery;
 
@@ -181,7 +181,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   /* 5. Future Value */
   int32_t future_value = 0;
   if(nbr->rank < RPL_INFINITE_RANK) {
-      future_value = 100 - ((int32_t)nbr->rank * 100 / MAX_PATH_COST);
+      future_value = 100 - (((int32_t)nbr->rank * 100) >> 15); // normalise rank to 0-100 with bit shift (divide by 32768);
       if(future_value < 0) future_value = 0;
   }
 
@@ -232,7 +232,7 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   // EXPLORATION
   if(random_rand() % 100 < 10) {
       LOG_INFO("SARSA EXPLORATION (10%%): Trying random route!\n");
-      return (random_rand() % 2 == 0) ? p1 : p2;
+      return ((random_rand() & 1) == 0) ? p1 : p2; // check least significant bit for random choice (odd or even)
   }
 
   // +5 is a small bias to prevent Hysterisis
