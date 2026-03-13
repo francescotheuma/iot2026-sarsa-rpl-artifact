@@ -234,6 +234,50 @@ def plot_hardware_ticks_comparison(df_sarsa, df_mrhof, target_node=3):
         plt.savefig(os.path.join(SCRIPT_DIR, filename), dpi=300)
         print(f"Saved: {filename}")
 
+def plot_network_battery_profile(df, algo_name):
+    """
+    PLOT 5: Network-wide Battery Profile.
+    Plots the battery drain of all nodes in a single simulation on one graph.
+    Perfect for visualizing load balancing (lines sticking together).
+    """
+    if df.empty:
+        return
+
+    plt.figure(figsize=(10, 6))
+    
+    # Get all unique nodes, sort them for a clean legend
+    nodes = sorted(df['node'].unique())
+    
+    # Define some clear markers to easily tell nodes apart
+    markers = ['o', 's', '^', 'D', 'v', 'p', '*']
+    
+    for i, node in enumerate(nodes):
+        node_data = df[df['node'] == node]
+        
+        # We can plot all nodes. Note: Node 1 (Sink) might stay at 100% 
+        # depending on your Cooja setup, which serves as a great baseline!
+        plt.plot(node_data['sample_idx'], node_data['batt'], 
+                 label=f'Node {node}', 
+                 marker=markers[i % len(markers)], 
+                 markersize=4, 
+                 linestyle='-', 
+                 linewidth=2, 
+                 alpha=0.8)
+
+    plt.title(f"Network Battery Drain Profile: {algo_name}", fontsize=14)
+    plt.xlabel("Time (Sample Index - 10s intervals)", fontsize=12)
+    plt.ylabel("Battery Level (%)", fontsize=12)
+    plt.ylim(0, 105)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    
+    # Put the legend outside the graph so it doesn't cover the lines
+    plt.legend(title="Nodes", bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    plt.tight_layout()
+    filename = f"plot_5_network_profile_{algo_name.lower()}.png"
+    plt.savefig(os.path.join(SCRIPT_DIR, filename), dpi=300)
+    print(f"Saved: {filename}")
+
 if __name__ == "__main__":
     # 1. Extract MAC reward data (SARSA only)
     print("Extracting SARSA MAC reward data...")
@@ -250,28 +294,18 @@ if __name__ == "__main__":
     print("\nExtracting periodic battery samples...")
     df_battery_sarsa = extract_battery_samples(LOG_FILE_SARSA)
     df_battery_mrhof = extract_battery_samples(LOG_FILE_MRHOF)
-    
+
     if not df_battery_sarsa.empty or not df_battery_mrhof.empty:
         print(f"SARSA: {len(df_battery_sarsa)} battery samples")
         print(f"MRHOF: {len(df_battery_mrhof)} battery samples")
         
-        # Generate the overall battery comparison plot
+        # Your existing comparison plot
         plot_battery_comparison(df_battery_sarsa, df_battery_mrhof)
         
-        # --- NEW: Generate hardware tick comparisons for each active node ---
-        active_nodes = set()
-        if not df_battery_sarsa.empty: 
-            active_nodes.update(df_battery_sarsa['node'].unique())
-        if not df_battery_mrhof.empty: 
-            active_nodes.update(df_battery_mrhof['node'].unique())
-        
-        print("\nGenerating hardware tick analysis plots...")
-        for node in active_nodes:
-            # We skip Node 1 if it's the sink/root (it doesn't have parents or make routing decisions)
-            if node != 1: 
-                plot_hardware_ticks_comparison(df_battery_sarsa, df_battery_mrhof, target_node=node)
-                
-    else:
-        print("Warning: No periodic battery samples found in logs.")
+        # --- NEW: Generate individual network profiles to prove Load Balancing ---
+        if not df_battery_sarsa.empty:
+            plot_network_battery_profile(df_battery_sarsa, "SARSA")
+        if not df_battery_mrhof.empty:
+            plot_network_battery_profile(df_battery_mrhof, "MRHOF")
     
     print("\nAll plots generated successfully!")
