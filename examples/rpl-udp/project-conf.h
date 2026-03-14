@@ -2,9 +2,9 @@
 #define LOG_CONF_LEVEL_RPL LOG_LEVEL_INFO
 
 /* Tell the node to use Objective Function 10 (SARSA) */
-#undef RPL_CONF_OF_OCP
-#define RPL_CONF_OF_OCP 10
-#define SARSA_ENABLED
+//#undef RPL_CONF_OF_OCP
+//#define RPL_CONF_OF_OCP 10
+//#define SARSA_ENABLED
 
 #define RPL_CONF_WITH_MC 1
 

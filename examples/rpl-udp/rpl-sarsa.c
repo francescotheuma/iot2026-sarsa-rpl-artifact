@@ -199,12 +199,13 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if (data->w_lq > 200) data->w_lq = 200;
   if (data->w_energy > 200) data->w_energy = 200;
 
-
   uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
-
   LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_Energy: %d | My_batt: %d | Parent_batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
            (int)nbr_id, (int)reward, (int)td_error, (int)data->w_lq, (int)data->w_energy, (get_local_energy_est()),(int)parent_battery);
+  
+          
+  
 }
 
 /*---------------------------------------------------------------------------*/

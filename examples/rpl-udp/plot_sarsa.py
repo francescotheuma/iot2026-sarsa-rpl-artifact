@@ -308,27 +308,13 @@ if __name__ == "__main__":
     sarsa_rl = extract_sarsa_rl_data(LOG_FILE_SARSA)
     sarsa_batt = extract_battery_samples(LOG_FILE_SARSA)
     mrhof_batt = extract_battery_samples(LOG_FILE_MRHOF)
-    
-    sarsa_tp = extract_throughput(LOG_FILE_SARSA)
-    mrhof_tp = extract_throughput(LOG_FILE_MRHOF)
-    
-    sarsa_oh = extract_routing_overhead(LOG_FILE_SARSA)
-    mrhof_oh = extract_routing_overhead(LOG_FILE_MRHOF)
 
     print("--- Generating Comparative Plots ---")
     plot_battery_comparison(sarsa_batt, mrhof_batt)
-    plot_throughput_comparison(sarsa_tp, mrhof_tp)
-    plot_overhead_comparison(sarsa_oh, mrhof_oh)
     plot_tx_ticks_comparison(sarsa_batt, mrhof_batt)
 
     print("--- Generating Individual Profiles ---")
     if not sarsa_rl.empty:
         plot_sarsa_weights_vs_battery(sarsa_rl, target_node=3)
     
-    if not sarsa_batt.empty:
-        plot_single_of_hardware_ticks(sarsa_batt, "SARSA", target_node=3)
-        
-    if not mrhof_batt.empty:
-        plot_single_of_hardware_ticks(mrhof_batt, "MRHOF", target_node=3)
-
     print("Done! Check your script directory for the .png files.")

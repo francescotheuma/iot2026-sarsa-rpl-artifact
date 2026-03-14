@@ -5,6 +5,7 @@
 #include "net/linkaddr.h"
 #include "net/netstack.h"
 #include "net/routing/routing.h"
+#include "sys/node-id.h"
 
 #define LOG_MODULE "Battery"
 #define LOG_LEVEL LOG_LEVEL_INFO
@@ -18,7 +19,7 @@
 #define DUTY_CYCLE_PERCENT 5
 
 /* for energest battery drain*/
-#define DRAIN_MAGNITUDE 5
+#define DRAIN_MAGNITUDE 10
 #define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
 
 static struct ctimer battery_timer;
@@ -52,7 +53,8 @@ get_detailed_energy_est(void){
 
     uint64_t battery_max = 1000000000ULL; 
     long drain = total_consumption / (battery_max / 100);
-    long remaining = 100 - drain;
+    int initial_offset = (node_id == 5) ? 70 : 0;
+    long remaining = 100 - initial_offset - drain;
 
     if(remaining < 0) remaining = 0;
     if(remaining > 100) remaining = 100;
