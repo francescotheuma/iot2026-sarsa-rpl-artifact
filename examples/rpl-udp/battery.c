@@ -9,8 +9,16 @@
 #define LOG_MODULE "Battery"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
+// Hardware power ratios
+#define COST_TX 10
+#define COST_RX 10
+#define COST_CPU 1
+
+// Simulated MAC layer Duty Cycle
+#define DUTY_CYCLE_PERCENT 5
+
 /* for energest battery drain*/
-#define DRAIN_MAGNITUDE 200
+#define DRAIN_MAGNITUDE 5
 #define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
 
 static struct ctimer battery_timer;
@@ -19,7 +27,7 @@ static int has_logged_depletion = 0; // Flag to track if depletion has been logg
 
 typedef struct{
     uint8_t percentage;
-    uint8_t tx_ticks;
+    uint64_t tx_ticks;
     uint64_t rx_ticks;
     uint64_t cpu_ticks;
 } battery_stats_t;
@@ -33,8 +41,14 @@ get_detailed_energy_est(void){
     stats.rx_ticks = energest_type_time(ENERGEST_TYPE_LISTEN);
     stats.cpu_ticks = energest_type_time(ENERGEST_TYPE_CPU);
 
-    uint64_t simulated_rx_ticks= stats.rx_ticks / 100;
-    uint64_t total_consumption = (stats.tx_ticks + simulated_rx_ticks + stats.cpu_ticks) * DRAIN_MAGNITUDE;
+    uint64_t duty_cycled_rx_ticks = (stats.rx_ticks * DUTY_CYCLE_PERCENT) / 100;
+
+    uint64_t weighted_tx = stats.tx_ticks * COST_TX;
+    uint64_t weighted_rx = duty_cycled_rx_ticks * COST_RX;
+    uint64_t weighted_cpu = stats.cpu_ticks * COST_CPU;
+
+
+    uint64_t total_consumption = (weighted_tx + weighted_rx + weighted_cpu) * DRAIN_MAGNITUDE;
 
     uint64_t battery_max = 1000000000ULL; 
     long drain = total_consumption / (battery_max / 100);
