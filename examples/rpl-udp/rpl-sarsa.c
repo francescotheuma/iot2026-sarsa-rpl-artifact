@@ -230,17 +230,17 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(d2 == NULL) return p2;
 
   // EXPLORATION
-  if(random_rand() % 100 < 10) {
-      LOG_INFO("SARSA EXPLORATION (10%%): Trying random route!\n");
+  if(random_rand() % 100 < 2) { 
+      LOG_INFO("SARSA EXPLORATION (2%%): Trying random route!\n");
       return ((random_rand() & 1) == 0) ? p1 : p2; // check least significant bit for random choice (odd or even)
   }
 
   // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {
-      return (d1->q_value + 5 >= d2->q_value) ? p1 : p2; 
+      return (d1->q_value + 15 >= d2->q_value) ? p1 : p2; 
   }
   if(p2 == curr_instance.dag.preferred_parent) {
-      return (d2->q_value + 5 >= d1->q_value) ? p2 : p1;
+      return (d2->q_value + 15 >= d1->q_value) ? p2 : p1;
   }
 
   return (d1->q_value > d2->q_value) ? p1 : p2;

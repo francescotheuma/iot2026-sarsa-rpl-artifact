@@ -15,6 +15,7 @@
 
 static struct ctimer battery_timer;
 static uint8_t battery_log_initialized = 0;
+static int has_logged_depletion = 0; // Flag to track if depletion has been logged (to avoid spam)
 
 typedef struct{
     uint8_t percentage;
@@ -43,10 +44,15 @@ get_detailed_energy_est(void){
     if(remaining > 100) remaining = 100;
 
     if(remaining == 0){
-        NETSTACK_MAC.off();
-        NETSTACK_ROUTING.leave_network();
+        if(has_logged_depletion == 0){
+            LOG_INFO("Battery depleted. Shutting down node.\n");
+            NETSTACK_MAC.off();
+            NETSTACK_ROUTING.leave_network();
 
-        return stats;
+            has_logged_depletion = 1; // Set flag to indicate depletion has been logged
+
+            return stats;
+        }
     }
 
     stats.percentage = (uint8_t)remaining;
