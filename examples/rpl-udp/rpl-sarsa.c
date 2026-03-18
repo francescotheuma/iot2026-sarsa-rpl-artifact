@@ -15,7 +15,7 @@
 #endif
 
 /* --- ML CONSTANTS --- */
-#define ALPHA 2   /* Learning Rate (0.20) */
+#define ALPHA 10   /* Learning Rate (0.20) */
 #define GAMMA 80   /* Discount Factor (0.90) */
 
 #define MAX_LINK_METRIC     512   
@@ -238,10 +238,10 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 
   // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {
-      return (d1->q_value + 15 >= d2->q_value) ? p1 : p2; 
+      return (d1->q_value + 2 >= d2->q_value) ? p1 : p2; 
   }
   if(p2 == curr_instance.dag.preferred_parent) {
-      return (d2->q_value + 15 >= d1->q_value) ? p2 : p1;
+      return (d2->q_value + 2 >= d1->q_value) ? p2 : p1;
   }
 
   return (d1->q_value > d2->q_value) ? p1 : p2;
