@@ -54,7 +54,14 @@ get_detailed_energy_est(void){
 
     uint64_t battery_max = BATTERY_SIZE; 
     long drain = total_consumption / (battery_max / 100);
-    int initial_offset = (node_id == 5) ? 70 : 0;
+    
+    int initial_offset = 0;
+    switch(node_id){
+        case 2: initial_offset = 0;break;
+        case 3: initial_offset = 0;break;
+        case 4: initial_offset = 0;break;
+        default: initial_offset = 0;break;
+    }
     long remaining = 100 - initial_offset - drain;
 
     if(remaining < 0) remaining = 0;
