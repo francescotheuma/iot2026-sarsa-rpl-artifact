@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <battery.h>
-#include "sys/node-id.h" // to check which node we are
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -17,7 +16,6 @@
 #define UDP_SERVER_PORT	5678
 
 #define SEND_INTERVAL		  (10 * CLOCK_SECOND)
-#define SEND_INTERVAL_FAST  (2 * CLOCK_SECOND)
 
 static struct simple_udp_connection udp_conn;
 static uint32_t rx_count = 0;
@@ -52,7 +50,6 @@ PROCESS_THREAD(udp_client_process, ev, data)
   uip_ipaddr_t dest_ipaddr;
   static uint32_t tx_count;
   static uint32_t missed_tx_count;
-  unsigned long current_interval;
 
   PROCESS_BEGIN();
 
@@ -62,10 +59,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
                       UDP_SERVER_PORT, udp_rx_callback);
 
-  current_interval = (node_id == 9) ? SEND_INTERVAL_FAST : SEND_INTERVAL; // Node 9 is the mobile node, it sends more frequently to trigger route changes and show the learning in action
-
-  etimer_set(&periodic_timer, random_rand() % current_interval);
-
+  etimer_set(&periodic_timer, random_rand() % SEND_INTERVAL);
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
@@ -92,11 +86,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
       }
     }
 
-    /* Keep the high-traffic / low-traffic logic for next timer set */
-    current_interval = (node_id == 9) ? SEND_INTERVAL_FAST : SEND_INTERVAL;
-
     /* Add some jitter */
-    etimer_set(&periodic_timer, current_interval
+    etimer_set(&periodic_timer, SEND_INTERVAL
       - CLOCK_SECOND + (random_rand() % (2 * CLOCK_SECOND)));
   }
 
