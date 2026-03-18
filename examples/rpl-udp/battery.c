@@ -20,6 +20,7 @@
 
 /* for energest battery drain*/
 #define DRAIN_MAGNITUDE 10
+#define BATTERY_SIZE 1000000000ULL // 1 billion ticks represents a full battery for our estimation
 #define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
 
 static struct ctimer battery_timer;
@@ -51,7 +52,7 @@ get_detailed_energy_est(void){
 
     uint64_t total_consumption = (weighted_tx + weighted_rx + weighted_cpu) * DRAIN_MAGNITUDE;
 
-    uint64_t battery_max = 1000000000ULL; 
+    uint64_t battery_max = BATTERY_SIZE; 
     long drain = total_consumption / (battery_max / 100);
     int initial_offset = (node_id == 5) ? 70 : 0;
     long remaining = 100 - initial_offset - drain;
