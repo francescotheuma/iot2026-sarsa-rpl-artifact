@@ -120,23 +120,23 @@ nbr_is_acceptable_parent(rpl_nbr_t *nbr)
 }
 
 /*---------------------------------------------------------------------------*/
+static int32_t calculate_flink_quality(uint16_t raw_etx){
+  if(raw_etx <= 512) return 100;
+  else if(raw_etx >= 2056) return 0;
+  else {
+    return  100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
+  }
+}
 static void
 update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 {
   if(nbr == NULL || data == NULL) return; 
 
   int32_t f_energy = (int32_t)data->energy_level;
-  int32_t raw_etx = (int32_t)nbr_link_metric(nbr);
-  int32_t f_link_quality;
+  int32_t f_link_quality = calculate_flink_quality(nbr_link_metric(nbr));
 
   // Normalise ETX from 0-100
-
-  if(raw_etx <= 512) f_link_quality = 100;
-  else if (raw_etx >=2560) f_link_quality = 0;
-  else f_link_quality = 100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
-
   int32_t total_weight = data->w_energy + data->w_lq;
-
 
   /* Comine features into q-value for neighbour */
   data->q_value = ((data->w_energy * f_energy) + (data->w_lq * f_link_quality)) / total_weight;
@@ -186,11 +186,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   }
 
   /* 4. Extract State Features */
-  int32_t raw_etx = (int32_t)nbr_link_metric(nbr); 
-  int32_t f_link_quality;
-  if(raw_etx <= 512) f_link_quality = 100;
-  else if(raw_etx >= 2560) f_link_quality = 0;
-  else f_link_quality = 100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
+  int32_t f_link_quality = calculate_flink_quality(nbr_link_metric(nbr));
 
   int32_t f_energy = parent_battery;
 
@@ -208,8 +204,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - old_predicted_q; 
 
   /* 7. Update Global Policy Weights */
-  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 10000); // divide by 100 to avoid floating point math
-  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 10000);
+  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 1000); // divide by 100 to avoid floating point math
+  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 1000);
 
   /* Soft bounds to prevent weights from exploding/dying */
   if(data->w_lq < 10) data->w_lq = 10;
