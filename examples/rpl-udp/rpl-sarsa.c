@@ -52,7 +52,10 @@ NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory
 static void
 reset(void)
 {
-  LOG_INFO("Resetting SARSA LFA OF and initializing Q-Table\n");
+
+  #ifdef SARSA_LOGGING
+    LOG_INFO("Resetting SARSA LFA OF and initializing Q-Table\n");
+  #endif
   nbr_table_register(sarsa_neighbors, NULL);
 }
 
@@ -173,7 +176,11 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   if(status == MAC_TX_OK) {
     // Reward changes based on parent battery level to encourage energy balancing
-      reward = parent_battery;  
+      if (parent_battery < 35){
+        reward = parent_battery - 60;
+      } else{
+        reward = parent_battery;  
+      }
       
       if(numtx > 1){
         reward -= (10*numtx);
@@ -214,13 +221,12 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if (data->w_lq > 200) data->w_lq = 200;
   if (data->w_energy > 200) data->w_energy = 200;
 
-  uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
-  LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_Energy: %d | My_batt: %d | Parent_batt: %d\n",
+  #ifdef SARSA_LOGGING
+    uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
+    LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_Energy: %d | My_batt: %d | Parent_batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
            (int)nbr_id, (int)reward, (int)td_error, (int)data->w_lq, (int)data->w_energy, (get_local_energy_est()),(int)parent_battery);
-  
-          
-  
+  #endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -247,7 +253,9 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 
   // EXPLORATION
   if(random_rand() % 100 < SARSA_EXPLORATION_RATE) { 
+    #ifdef SARSA_LOGGING
       LOG_INFO("SARSA EXPLORATION (2%%): Trying random route!\n");
+    #endif
       return ((random_rand() & 1) == 0) ? p1 : p2; // check least significant bit for random choice (odd or even)
   }
 
