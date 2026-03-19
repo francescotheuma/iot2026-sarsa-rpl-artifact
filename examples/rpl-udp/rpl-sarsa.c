@@ -27,12 +27,6 @@
   #define GAMMA 80
 #endif
 
-#ifdef SARSA_CONF_EXPLORATION_RATE
-  #define SARSA_EXPLORATION_RATE SARSA_CONF_EXPLORATION_RATE
-#else
-  #define SARSA_EXPLORATION_RATE 2
-#endif
-
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
 

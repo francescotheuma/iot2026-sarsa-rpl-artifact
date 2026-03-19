@@ -187,48 +187,83 @@ def plot_overhead_comparison(sarsa_oh, mrhof_oh):
     plt.savefig(os.path.join(SCRIPT_DIR, "plot_comp_overhead.png"), dpi=300)
     print("Saved: plot_comp_overhead.png")
 
-def plot_tx_ticks_comparison(df_sarsa, df_mrhof):
+
+
+def plot_all_hardware_ticks_comparison(df_sarsa, df_mrhof):
     """
-    Bar chart comparing total TX (transmission) ticks of relay nodes.
-    This is the definitive proof of Load Balancing.
+    Creates a 3-panel bar chart comparing final TX, RX, and CPU ticks.
+    This proves the 'CSMA Radio Tax' theory (SARSA load-balancing vs MRHOF efficiency).
     """
     if df_sarsa.empty or df_mrhof.empty: 
         return
 
-    # Focus strictly on the Relay Nodes (the potential bottlenecks)
-    target_nodes = [2, 3]
+    # Focus on Relays (2, 3) and maybe the Sender (4)
+    target_nodes = [2, 3, 4]
+    
+    # Ensure nodes actually exist in the data to avoid errors
+    actual_nodes = sorted(list(set(df_sarsa['node']).intersection(set(df_mrhof['node']))))
+    target_nodes = [n for n in target_nodes if n in actual_nodes]
 
-    sarsa_tx = []
-    mrhof_tx = []
+    if not target_nodes:
+        return
+
+    sarsa_tx, sarsa_rx, sarsa_cpu = [], [], []
+    mrhof_tx, mrhof_rx, mrhof_cpu = [], [], []
 
     for node in target_nodes:
-        # Extract the final cumulative TX ticks for each node
-        s_node_data = df_sarsa[df_sarsa['node'] == node]
-        m_node_data = df_mrhof[df_mrhof['node'] == node]
+        # Get max cumulative ticks for each node
+        s_data = df_sarsa[df_sarsa['node'] == node]
+        m_data = df_mrhof[df_mrhof['node'] == node]
 
-        s_tx = s_node_data['tx'].max() if not s_node_data.empty else 0
-        m_tx = m_node_data['tx'].max() if not m_node_data.empty else 0
+        sarsa_tx.append(s_data['tx'].max() if not s_data.empty else 0)
+        sarsa_rx.append(s_data['rx'].max() if not s_data.empty else 0)
+        sarsa_cpu.append(s_data['cpu'].max() if not s_data.empty else 0)
 
-        sarsa_tx.append(s_tx)
-        mrhof_tx.append(m_tx)
+        mrhof_tx.append(m_data['tx'].max() if not m_data.empty else 0)
+        mrhof_rx.append(m_data['rx'].max() if not m_data.empty else 0)
+        mrhof_cpu.append(m_data['cpu'].max() if not m_data.empty else 0)
 
     x = np.arange(len(target_nodes))
     width = 0.35
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(x - width/2, sarsa_tx, width, label='SARSA', color='royalblue')
-    ax.bar(x + width/2, mrhof_tx, width, label='MRHOF', color='firebrick')
+    # Create 3 subplots side-by-side
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-    ax.set_ylabel('Total Transmission (TX) Energest Ticks')
-    ax.set_title('Relay Node Workload Distribution: SARSA vs MRHOF')
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"Node {n}" for n in target_nodes])
-    ax.legend()
-    ax.grid(axis='y', linestyle='--', alpha=0.6)
+    # --- 1. TX Ticks ---
+    axes[0].bar(x - width/2, sarsa_tx, width, label='SARSA', color='royalblue')
+    axes[0].bar(x + width/2, mrhof_tx, width, label='MRHOF', color='firebrick')
+    axes[0].set_title('Total Transmission (TX) Ticks', fontsize=14)
+    axes[0].set_ylabel('Energest Ticks')
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels([f"Node {n}" for n in target_nodes])
+    axes[0].grid(axis='y', linestyle='--', alpha=0.6)
+    axes[0].legend()
+
+    # --- 2. RX Ticks (The CSMA Killer) ---
+    axes[1].bar(x - width/2, sarsa_rx, width, label='SARSA', color='royalblue')
+    axes[1].bar(x + width/2, mrhof_rx, width, label='MRHOF', color='firebrick')
+    axes[1].set_title('Total Listening/Receiving (RX) Ticks', fontsize=14)
+    axes[1].set_xticks(x)
+    axes[1].set_xticklabels([f"Node {n}" for n in target_nodes])
+    axes[1].grid(axis='y', linestyle='--', alpha=0.6)
+    axes[1].legend()
+
+    # --- 3. CPU Ticks ---
+    axes[2].bar(x - width/2, sarsa_cpu, width, label='SARSA', color='royalblue')
+    axes[2].bar(x + width/2, mrhof_cpu, width, label='MRHOF', color='firebrick')
+    axes[2].set_title('Total CPU Ticks', fontsize=14)
+    axes[2].set_xticks(x)
+    axes[2].set_xticklabels([f"Node {n}" for n in target_nodes])
+    axes[2].grid(axis='y', linestyle='--', alpha=0.6)
+    axes[2].legend()
+
+    # Add a main title for the whole figure
+    fig.suptitle('Hardware Workload Comparison: SARSA vs MRHOF', fontsize=18, fontweight='bold', y=1.05)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "plot_comp_tx_ticks.png"), dpi=300)
-    print("Saved: plot_comp_tx_ticks.png")
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_comp_all_hardware_ticks.png"), dpi=300, bbox_inches='tight')
+    print("Node 2 RX Delta:", s_data['rx'].max() - m_data['rx'].max())
+    print("Saved: plot_comp_all_hardware_ticks.png")
 
 # ==========================================
 # 3. INDIVIDUAL PROTOCOL PLOTS (DEEP DIVES)
@@ -268,33 +303,6 @@ def plot_sarsa_weights_vs_battery(df, target_node):
     plt.savefig(os.path.join(SCRIPT_DIR, f"plot_indiv_sarsa_weights_node{target_node}.png"), dpi=300)
     print(f"Saved: plot_indiv_sarsa_weights_node{target_node}.png")
 
-def plot_single_of_hardware_ticks(df, algo_name, target_node=3):
-    """Plots TX, RX, and CPU hardware usage over time for a single protocol."""
-    node_data = df[df['node'] == target_node]
-    if node_data.empty: return
-        
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-    
-    ax1.plot(node_data['sample_idx'], node_data['tx'], label=f'{algo_name} TX', color='blue', linewidth=2)
-    ax1.set_title(f"Node {target_node} ({algo_name}): Transmission (TX)", fontsize=12)
-    ax1.grid(True, linestyle='--', alpha=0.6)
-    ax1.legend()
-    
-    ax2.plot(node_data['sample_idx'], node_data['rx'], label=f'{algo_name} RX', color='green', linewidth=2)
-    ax2.set_title(f"Node {target_node} ({algo_name}): Listening (RX)", fontsize=12)
-    ax2.grid(True, linestyle='--', alpha=0.6)
-    ax2.legend()
-    
-    ax3.plot(node_data['sample_idx'], node_data['cpu'], label=f'{algo_name} CPU', color='darkorange', linewidth=2)
-    ax3.set_title(f"Node {target_node} ({algo_name}): Processing (CPU)", fontsize=12)
-    ax3.set_xlabel("Sample Index")
-    ax3.grid(True, linestyle='--', alpha=0.6)
-    ax3.legend()
-    
-    plt.tight_layout()
-    filename = f"plot_indiv_ticks_node{target_node}_{algo_name.lower()}.png"
-    plt.savefig(os.path.join(SCRIPT_DIR, filename), dpi=300)
-    print(f"Saved: {filename}")
 
 
 # ==========================================
@@ -311,10 +319,11 @@ if __name__ == "__main__":
 
     print("--- Generating Comparative Plots ---")
     plot_battery_comparison(sarsa_batt, mrhof_batt)
-    plot_tx_ticks_comparison(sarsa_batt, mrhof_batt)
+    plot_all_hardware_ticks_comparison(sarsa_batt, mrhof_batt)
 
-    print("--- Generating Individual Profiles ---")
-    if not sarsa_rl.empty:
-        plot_sarsa_weights_vs_battery(sarsa_rl, target_node=3)
+    plot_sarsa_weights_vs_battery(sarsa_rl, target_node=2) # Focus on a key relay node
+    plot_sarsa_weights_vs_battery(sarsa_rl, target_node=3) # Focus on another key relay node
+    plot_sarsa_weights_vs_battery(sarsa_rl, target_node=4) # Focus on a third key relay node
+    
     
     print("Done! Check your script directory for the .png files.")

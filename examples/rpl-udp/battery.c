@@ -98,13 +98,13 @@ get_detailed_energy_est(void){
   return get_detailed_energy_est().percentage;
 }
 
+// Print battery stats every BATTERY_LOG_INTERVAL
 static void
 battery_log_callback(void *ptr)
 {
     battery_stats_t stats = get_detailed_energy_est();
     uint8_t node_id = linkaddr_node_addr.u8[LINKADDR_SIZE - 1];
     
-    // We cast to unsigned long for safe printf formatting in Contiki
     LOG_INFO("BATTERY_SAMPLE: node=%d, batt=%d, TX=%lu, RX=%lu, CPU=%lu\n", 
              node_id, 
              stats.percentage, 
