@@ -27,6 +27,12 @@
   #define GAMMA 80
 #endif
 
+#ifdef SARSA_CONF_EXPLORATION_RATE
+  #define SARSA_EXPLORATION_RATE SARSA_CONF_EXPLORATION_RATE
+#else
+  #define SARSA_EXPLORATION_RATE 2
+#endif
+
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
 
@@ -199,8 +205,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - old_predicted_q; 
 
   /* 7. Update Global Policy Weights */
-  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 100); // divide by 100 to avoid floating point math
-  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 100);
+  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 10000); // divide by 100 to avoid floating point math
+  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 10000);
 
   /* Soft bounds to prevent weights from exploding/dying */
   if(data->w_lq < 10) data->w_lq = 10;
@@ -240,7 +246,7 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(d2 == NULL) return p2;
 
   // EXPLORATION
-  if(random_rand() % 100 < 2) { 
+  if(random_rand() % 100 < SARSA_EXPLORATION_RATE) { 
       LOG_INFO("SARSA EXPLORATION (2%%): Trying random route!\n");
       return ((random_rand() & 1) == 0) ? p1 : p2; // check least significant bit for random choice (odd or even)
   }
