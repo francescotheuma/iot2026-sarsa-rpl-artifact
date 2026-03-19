@@ -1,7 +1,19 @@
 #define LOG_CONF_LEVEL_DEFAULT LOG_LEVEL_WARN
 #define LOG_CONF_LEVEL_RPL LOG_LEVEL_INFO
 
+/* =====================*/
+/* MODIFIABLE DIRECTIVES*/
+/* =====================*/
+
+//SARSA
 #define SARSA
+#define SARSA_CONF_ALPHA 10
+#define SARSA_CONF_GAMMA 80
+
+//General
+#define CONF_DRAIN_MAGNITUDE 10
+
+/* =====================*/
 
 /* Tell the node to use Objective Function 10 (SARSA) */
 #ifdef SARSA

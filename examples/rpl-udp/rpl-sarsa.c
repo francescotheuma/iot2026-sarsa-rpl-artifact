@@ -15,8 +15,17 @@
 #endif
 
 /* --- ML CONSTANTS --- */
-#define ALPHA 10   /* Learning Rate (0.20) */
-#define GAMMA 80   /* Discount Factor (0.90) */
+#ifdef SARSA_CONF_ALPHA
+  #define ALPHA SARSA_CONF_ALPHA
+#else
+  #define ALPHA 10
+#endif
+
+#ifdef SARSA_CONF_GAMMA
+  #define GAMMA SARSA_CONF_GAMMA
+#else
+  #define GAMMA 80
+#endif
 
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 

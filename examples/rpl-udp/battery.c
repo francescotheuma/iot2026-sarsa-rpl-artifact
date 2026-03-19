@@ -19,7 +19,12 @@
 #define DUTY_CYCLE_PERCENT 5
 
 /* for energest battery drain*/
-#define DRAIN_MAGNITUDE 10
+#ifdef CONF_DRAIN_MAGNITUDE
+    #define DRAIN_MAGNITUDE CONF_DRAIN_MAGNITUDE
+#else
+    #define DRAIN_MAGNITUDE 10
+#endif
+
 #define BATTERY_SIZE 1000000000ULL // 1 billion ticks represents a full battery for our estimation
 #define BATTERY_LOG_INTERVAL (10 * CLOCK_SECOND)
 
