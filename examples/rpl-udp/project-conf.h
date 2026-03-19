@@ -14,6 +14,7 @@
 
 //General
 #define CONF_DRAIN_MAGNITUDE 500
+#define CONF_COST_RX 0
 
 /* =====================*/
 

@@ -217,6 +217,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if (data->w_lq > 200) data->w_lq = 200;
   if (data->w_energy > 200) data->w_energy = 200;
 
+  update_q_value(nbr, data);
+
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
     LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_Energy: %d | My_batt: %d | Parent_batt: %d\n",
@@ -241,19 +243,8 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(p1 != NULL && d1 != NULL) d1->energy_level = p1->mc.obj.energy.energy_est;
   if(p2 != NULL && d2 != NULL) d2->energy_level = p2->mc.obj.energy.energy_est;
 
-  if(d1) update_q_value(p1, d1);
-  if(d2) update_q_value(p2, d2);
-
   if(d1 == NULL) return p1; 
   if(d2 == NULL) return p2;
-
-  // EXPLORATION
-  if(random_rand() % 100 < SARSA_EXPLORATION_RATE) { 
-    #ifdef SARSA_LOGGING
-      LOG_INFO("SARSA EXPLORATION (2%%): Trying random route!\n");
-    #endif
-      return ((random_rand() & 1) == 0) ? p1 : p2; // check least significant bit for random choice (odd or even)
-  }
 
   // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {

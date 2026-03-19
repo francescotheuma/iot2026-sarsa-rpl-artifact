@@ -12,7 +12,11 @@
 
 // Hardware power ratios
 #define COST_TX 10
-#define COST_RX 0
+
+#ifdef CONF_COST_RX
+    #define COST_RX CONF_COST_RX
+#endif
+
 #define COST_CPU 1
 
 // Simulated MAC layer Duty Cycle
