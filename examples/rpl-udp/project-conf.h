@@ -6,14 +6,14 @@
 /* =====================*/
 
 //SARSA
-#define SARSA
+//#define SARSA
 #define SARSA_CONF_ALPHA 10
 #define SARSA_CONF_GAMMA 80
-#define SARSA_LOGGING
+//#define SARSA_LOGGING
 
 //General
-#define CONF_DRAIN_MAGNITUDE 10
-#define CONF_COST_RX 10
+#define CONF_DRAIN_MAGNITUDE 500
+#define CONF_COST_RX 0
 
 /* =====================*/
 

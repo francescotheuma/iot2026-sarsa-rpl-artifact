@@ -164,6 +164,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   sarsa_nbr_t *data = get_sarsa_data(nbr);
   if(data == NULL) return;
 
+  data->energy_level = nbr->mc.obj.energy.energy_est; // Update energy level with latest estimate from DIOs
+
   /* 3. The True Environmental Reward */
   int32_t reward = 0;
   int32_t parent_battery = (int32_t)data->energy_level;
@@ -229,9 +231,6 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 
   sarsa_nbr_t *d1 = get_sarsa_data(p1);
   sarsa_nbr_t *d2 = get_sarsa_data(p2);
-
-  if(p1 != NULL && d1 != NULL) d1->energy_level = p1->mc.obj.energy.energy_est;
-  if(p2 != NULL && d2 != NULL) d2->energy_level = p2->mc.obj.energy.energy_est;
 
   if(d1 == NULL) return p1; 
   if(d2 == NULL) return p2;
