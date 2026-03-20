@@ -67,7 +67,6 @@ get_sarsa_data(rpl_nbr_t *nbr)
   if(s_data == NULL) {
     s_data = nbr_table_add_lladdr(sarsa_neighbors, lladdr, NBR_TABLE_REASON_RPL_LITE, NULL);
     if(s_data != NULL) {
-      s_data->q_value = 100; // Optimistic initialisation
       s_data->energy_level = 100; // to prevent initial bias against new neighbours with unknown energy levels
       s_data->next_action_q = 100; //Optimistic initialisation for next action Q-value
     }
