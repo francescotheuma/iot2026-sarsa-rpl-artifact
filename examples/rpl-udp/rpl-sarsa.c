@@ -34,10 +34,12 @@
 typedef struct {
   int32_t q_value;      
   int32_t energy_level;
-  /* Weights per neighbour*/
-  int32_t w_lq; 
-  int32_t w_energy;
+  int16_t next_action_q;   //Rebirth
 } sarsa_nbr_t;
+
+// GLOBAL WEIGHTS
+int32_t global_w_lq = 50;
+int32_t global_w_energy = 50;
 
 NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory for the neighbours
 
@@ -54,6 +56,26 @@ reset(void)
 }
 
 /*---------------------------------------------------------------------------*/
+// NEW STUFF FOR REBIRTH
+#include "contiki.h"
+int16_t my_current_action_q = 0; // global variable for best parent Q-value
+
+int16_t sarsa_get_my_q(void){
+  return my_current_action_q;
+}
+
+void sarsa_save_neighbour_q(const uip_ipaddr_t *from_ip, int16_t received_q){
+  rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr((uip_ipaddr_t *)from_ip);
+  if(nbr != NULL){
+    sarsa_nbr_t *sarsa_data = get_sarsa_data(nbr);
+    if(sarsa_data != NULL){
+      sarsa_data->next_action_q = received_q;
+    }
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+
 static sarsa_nbr_t *
 get_sarsa_data(rpl_nbr_t *nbr)
 {
@@ -66,8 +88,6 @@ get_sarsa_data(rpl_nbr_t *nbr)
     s_data = nbr_table_add_lladdr(sarsa_neighbors, lladdr, NBR_TABLE_REASON_RPL_LITE, NULL);
     if(s_data != NULL) {
       s_data->q_value = 100; // Optimistic initialisation
-      s_data->w_lq = 50;
-      s_data->w_energy = 50;
       s_data->energy_level = 100; // to prevent initial bias against new neighbours with unknown energy levels
     }
   }
@@ -130,10 +150,10 @@ update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
   int32_t f_link_quality = calculate_flink_quality(nbr_link_metric(nbr));
 
   // Normalise ETX from 0-100
-  int32_t total_weight = data->w_energy + data->w_lq;
+  int32_t total_weight = global_w_energy + global_w_lq;
 
   /* Comine features into q-value for neighbour */
-  data->q_value = ((data->w_energy * f_energy) + (data->w_lq * f_link_quality)) / total_weight;
+  data->q_value = ((global_w_energy * f_energy) + (global_w_lq * f_link_quality)) / total_weight;
 }
 /*---------------------------------------------------------------------------*/
 
@@ -200,22 +220,22 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - old_predicted_q; 
 
   /* 7. Update Global Policy Weights */
-  data->w_lq = data->w_lq + ((ALPHA * td_error * f_link_quality) / 1000); // divide by 100 to avoid floating point math
-  data->w_energy = data->w_energy + ((ALPHA * td_error * f_energy) / 1000);
+  global_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 1000); // divide by 100 to avoid floating point math
+  global_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 1000);
 
   /* Soft bounds to prevent weights from exploding/dying */
-  if(data->w_lq < 10) data->w_lq = 10;
-  if(data->w_energy < 10) data->w_energy = 10;
-  if (data->w_lq > 200) data->w_lq = 200;
-  if (data->w_energy > 200) data->w_energy = 200;
+  if(global_w_lq < 10) global_w_lq = 10;
+  if(global_w_energy < 10) global_w_energy = 10;
+  if (global_w_lq > 200) global_w_lq = 200;
+  if (global_w_energy > 200) global_w_energy = 200;
 
   update_q_value(nbr, data);
 
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
-    LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_Energy: %d | My_batt: %d | Parent_batt: %d\n",
+    LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | global_w_energy: %d | My_batt: %d | Parent_batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)nbr_id, (int)reward, (int)td_error, (int)data->w_lq, (int)data->w_energy, (get_local_energy_est()),(int)parent_battery);
+           (int)nbr_id, (int)reward, (int)td_error, (int)data->global_w_lq, (int)data->global_w_energy, (get_local_energy_est()),(int)parent_battery);
   #endif
 }
 
@@ -235,15 +255,26 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(d1 == NULL) return p1; 
   if(d2 == NULL) return p2;
 
+  rpl_nbr_t *best;
+
   // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {
-      return (d1->q_value + 2 >= d2->q_value) ? p1 : p2; 
+      best = (d1->q_value + 2 >= d2->q_value) ? p1 : p2; 
   }
-  if(p2 == curr_instance.dag.preferred_parent) {
-      return (d2->q_value + 2 >= d1->q_value) ? p2 : p1;
+  else if(p2 == curr_instance.dag.preferred_parent) {
+      best = (d2->q_value + 2 >= d1->q_value) ? p2 : p1;
+  }
+  else{
+    best = (d1->q_value > d2->q_value) ? p1 : p2;
   }
 
-  return (d1->q_value > d2->q_value) ? p1 : p2;
+  // Save winning Q-value for DIO piggyback
+  sarsa_nbr_t *best_data = get_sarsa_data(best);
+  if(best_data != NULL){
+    my_current_action_q = (int16_t)best_data->q_value;
+  }
+
+  return best;
 }
 
 /*---------------------------------------------------------------------------*/
