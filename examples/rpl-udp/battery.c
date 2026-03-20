@@ -66,8 +66,8 @@ get_detailed_energy_est(void){
     
     int initial_offset = 0;
     switch(node_id){
-        case 2: initial_offset = 70;break;
-        case 3: initial_offset = 30;break;
+        case 2: initial_offset = 0;break;
+        case 3: initial_offset = 0;break;
         case 4: initial_offset = 0;break;
         default: initial_offset = 0;break;
     }

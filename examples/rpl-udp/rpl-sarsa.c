@@ -224,9 +224,19 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
-    LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | global_w_energy: %d | My_batt: %d | Parent_batt: %d\n",
+    
+    // Added Current Q and Next Q, and cleaned up the labels for easier reading
+    LOG_INFO("MAC: %s | Par: %d | Q: %d | Next_Q: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_ENG: %d | MyBat: %d | ParBat: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)nbr_id, (int)reward, (int)td_error, (int)global_w_lq, (int)global_w_energy, (get_local_energy_est()),(int)parent_battery);
+           (int)nbr_id, 
+           (int)current_q, 
+           (int)future_value, 
+           (int)reward, 
+           (int)td_error, 
+           (int)global_w_lq, 
+           (int)global_w_energy, 
+           (int)(get_local_energy_est()), 
+           (int)parent_battery);
   #endif
 }
 
@@ -267,6 +277,17 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(best_data != NULL){
     my_current_action_q = (int16_t)calculate_current_q(best, best_data);
   }
+
+  #ifdef SARSA_LOGGING
+    if(p1 != NULL && p2 != NULL) {
+      uint16_t id1 = rpl_neighbor_get_lladdr(p1)->u8[LINKADDR_SIZE - 1];
+      uint16_t id2 = rpl_neighbor_get_lladdr(p2)->u8[LINKADDR_SIZE - 1];
+      uint16_t best_id = rpl_neighbor_get_lladdr(best)->u8[LINKADDR_SIZE - 1];
+      
+      LOG_INFO("EVALUATE: P1: %d (Q: %d) vs P2: %d (Q: %d) -> CHOSE: %d\n", 
+               (int)id1, (int)q1, (int)id2, (int)q2, (int)best_id);
+    }
+  #endif
 
   return best;
 }
