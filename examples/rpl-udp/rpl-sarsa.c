@@ -209,11 +209,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t old_predicted_q = data->q_value; 
 
   /* 5. Future Value */
-  int32_t future_value = 0;
-  if(nbr->rank < RPL_INFINITE_RANK) {
-      future_value = 100 - (((int32_t)nbr->rank * 100) >> 15); // normalise rank to 0-100 with bit shift (divide by 32768);
-      if(future_value < 0) future_value = 0;
-  }
+  int32_t future_value = (int32_t)data->next_action_q; // In SARSA, we use the Q-value of the action actually taken in the next state
 
   /* 6. Calculate True TD Error */
   int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
