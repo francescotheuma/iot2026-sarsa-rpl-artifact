@@ -56,25 +56,6 @@ reset(void)
 }
 
 /*---------------------------------------------------------------------------*/
-// NEW STUFF FOR REBIRTH
-#include "contiki.h"
-int16_t my_current_action_q = 0; // global variable for best parent Q-value
-
-int16_t sarsa_get_my_q(void){
-  return my_current_action_q;
-}
-
-void sarsa_save_neighbour_q(const uip_ipaddr_t *from_ip, int16_t received_q){
-  rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr((uip_ipaddr_t *)from_ip);
-  if(nbr != NULL){
-    sarsa_nbr_t *sarsa_data = get_sarsa_data(nbr);
-    if(sarsa_data != NULL){
-      sarsa_data->next_action_q = received_q;
-    }
-  }
-}
-
-/*---------------------------------------------------------------------------*/
 
 static sarsa_nbr_t *
 get_sarsa_data(rpl_nbr_t *nbr)
@@ -93,6 +74,27 @@ get_sarsa_data(rpl_nbr_t *nbr)
   }
   return s_data;
 }
+
+
+/*---------------------------------------------------------------------------*/
+// NEW STUFF FOR REBIRTH
+#include "contiki.h"
+int16_t my_current_action_q = 0; // global variable for best parent Q-value
+
+int16_t sarsa_get_my_q(void){
+  return my_current_action_q;
+}
+
+void sarsa_save_neighbour_q(const uip_ipaddr_t *from_ip, int16_t received_q){
+  rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr((uip_ipaddr_t *)from_ip);
+  if(nbr != NULL){
+    sarsa_nbr_t *sarsa_data = get_sarsa_data(nbr);
+    if(sarsa_data != NULL){
+      sarsa_data->next_action_q = received_q;
+    }
+  }
+}
+
 
 /*---------------------------------------------------------------------------*/
 static uint16_t
@@ -231,7 +233,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
     LOG_INFO("MAC REWARD: %s | Parent: %d | Rew: %d | TD_Err: %d | W_LQ: %d | global_w_energy: %d | My_batt: %d | Parent_batt: %d\n",
            (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)nbr_id, (int)reward, (int)td_error, (int)data->global_w_lq, (int)data->global_w_energy, (get_local_energy_est()),(int)parent_battery);
+           (int)nbr_id, (int)reward, (int)td_error, (int)global_w_lq, (int)global_w_energy, (get_local_energy_est()),(int)parent_battery);
   #endif
 }
 
