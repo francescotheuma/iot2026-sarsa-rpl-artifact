@@ -332,6 +332,14 @@ dio_input(void)
         /* 32-bit reserved at i + 12 */
         memcpy(&dio.prefix_info.prefix, &buffer[i + 16], 16);
         break;
+      case 0xFF:
+        if(buffer[i + 1] == 2){
+          int16_t received_q = (buffer[i + 2] << 8) | buffer[i + 3];
+
+          extern void sarsa_save_neighbor_q(const uip_ipaddr_t *from, int16_t q);
+          sarsa_save_neighbor_q(&from, received_q);
+        }
+        break;
       default:
         LOG_WARN("dio_input: unsupported suboption type in DIO: %u, discard\n", (unsigned)subopt_type);
         goto discard;
@@ -466,6 +474,18 @@ rpl_icmp6_dio_output(uip_ipaddr_t *uc_addr)
          (unsigned)curr_instance.dag.rank);
   LOG_INFO_6ADDR(addr);
   LOG_INFO_("\n");
+
+  /* -------------------------------------- */
+  // DIO injection for SARSA piggybacking
+  buffer[pos++] = 0xFF;
+  buffer[pos++] = 0x02;
+
+  extern int16_t sarsa_get_my_q(void);
+  int16_t q_to_send = sarsa_get_my_q();
+
+  buffer[pos++] = (q_to_send >> 8) & 0xFF;
+  buffer[pos++] = q_to_send & 0xFF;
+  /* -------------------------------------- */
 
   uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIO, pos);
 }

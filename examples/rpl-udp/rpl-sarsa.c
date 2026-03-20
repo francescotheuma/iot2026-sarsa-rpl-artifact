@@ -85,7 +85,7 @@ int16_t sarsa_get_my_q(void){
   return my_current_action_q;
 }
 
-void sarsa_save_neighbour_q(const uip_ipaddr_t *from_ip, int16_t received_q){
+void sarsa_save_neighbor_q(const uip_ipaddr_t *from_ip, int16_t received_q){
   rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr((uip_ipaddr_t *)from_ip);
   if(nbr != NULL){
     sarsa_nbr_t *sarsa_data = get_sarsa_data(nbr);
