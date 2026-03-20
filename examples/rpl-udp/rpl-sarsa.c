@@ -32,7 +32,6 @@
 
 // Struct to house the SARSA-related node values
 typedef struct {
-  int32_t q_value;      
   int32_t energy_level;
   int16_t next_action_q;   //Rebirth
 } sarsa_nbr_t;
@@ -144,19 +143,15 @@ static int32_t calculate_flink_quality(uint16_t raw_etx){
     return  100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
   }
 }
-static void
-update_q_value(rpl_nbr_t *nbr, sarsa_nbr_t *data)
+static int32_t
+calculate_current_q(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 {
-  if(nbr == NULL || data == NULL) return; 
+  if(nbr == NULL || data == NULL) return 0; 
 
   int32_t f_energy = (int32_t)data->energy_level;
   int32_t f_link_quality = calculate_flink_quality(nbr_link_metric(nbr));
 
-  // Normalise ETX from 0-100
-  int32_t total_weight = global_w_energy + global_w_lq;
-
-  /* Comine features into q-value for neighbour */
-  data->q_value = ((global_w_energy * f_energy) + (global_w_lq * f_link_quality)) / total_weight;
+  return ((global_w_energy * f_energy) + (global_w_lq * f_link_quality)) / 100; 
 }
 /*---------------------------------------------------------------------------*/
 
@@ -209,17 +204,17 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   int32_t f_energy = parent_battery;
 
-  int32_t old_predicted_q = data->q_value; 
+  int32_t current_q = calculate_current_q(nbr, data);
 
   /* 5. Future Value */
   int32_t future_value = (int32_t)data->next_action_q; // In SARSA, we use the Q-value of the action actually taken in the next state
 
   /* 6. Calculate True TD Error */
   int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
-  int32_t td_error = target - old_predicted_q; 
+  int32_t td_error = target - current_q; 
 
   /* 7. Update Global Policy Weights */
-  global_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 1000); // divide by 100 to avoid floating point math
+  global_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 1000); 
   global_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 1000);
 
   /* Soft bounds to prevent weights from exploding/dying */
@@ -227,8 +222,6 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if(global_w_energy < 10) global_w_energy = 10;
   if (global_w_lq > 200) global_w_lq = 200;
   if (global_w_energy > 200) global_w_energy = 200;
-
-  update_q_value(nbr, data);
 
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
@@ -254,23 +247,26 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
   if(d1 == NULL) return p1; 
   if(d2 == NULL) return p2;
 
+  int32_t q1 = calculate_current_q(p1, d1);
+  int32_t q2 = calculate_current_q(p2, d2);
+
   rpl_nbr_t *best;
 
   // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {
-      best = (d1->q_value + 2 >= d2->q_value) ? p1 : p2; 
+      best = (q1 + 5 >= q2) ? p1 : p2; 
   }
   else if(p2 == curr_instance.dag.preferred_parent) {
-      best = (d2->q_value + 2 >= d1->q_value) ? p2 : p1;
+      best = (q2 + 5 >= q1) ? p2 : p1;
   }
   else{
-    best = (d1->q_value > d2->q_value) ? p1 : p2;
+    best = (q1 > q2) ? p1 : p2;
   }
 
   // Save winning Q-value for DIO piggyback
   sarsa_nbr_t *best_data = get_sarsa_data(best);
   if(best_data != NULL){
-    my_current_action_q = (int16_t)best_data->q_value;
+    my_current_action_q = (int16_t)calculate_current_q(best, best_data);
   }
 
   return best;
