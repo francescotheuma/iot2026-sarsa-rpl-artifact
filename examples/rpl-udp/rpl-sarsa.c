@@ -136,10 +136,10 @@ nbr_is_acceptable_parent(rpl_nbr_t *nbr)
 
 /*---------------------------------------------------------------------------*/
 static int32_t calculate_flink_quality(uint16_t raw_etx){
-  if(raw_etx <= 512) return 100;
-  else if(raw_etx >= 2056) return 0;
+  if(raw_etx <= 128) return 100;
+  else if(raw_etx >= 512) return 0;
   else {
-    return  100 - (((raw_etx - 512) * 100) >> 11); // divide by 2048 (2^11 = 2048) with bit shift
+    return  100 - (((raw_etx - 128) * 100) / 384);
   }
 }
 static int32_t
@@ -192,10 +192,10 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
         reward = parent_battery;  
       
       if(numtx > 1){
-        reward -= (10*numtx);
+        reward -= (20*numtx);
       }
   } else {
-      reward = -20; // Massive penalty for dropped packet
+      reward = -100; // Massive penalty for dropped packet
   }
 
   /* 4. Extract State Features */
