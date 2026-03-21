@@ -224,14 +224,17 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - current_q; 
 
   /* 7. Update Global Policy Weights */
-  global_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 100); 
-  global_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 100);
+  int32_t temp_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 100); 
+  int32_t temp_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 100);
 
-  /* Soft bounds to prevent weights from exploding/dying */
-  if(global_w_lq < 10) global_w_lq = 10;
-  if(global_w_energy < 10) global_w_energy = 10;
-  if (global_w_lq > 200) global_w_lq = 200;
-  if (global_w_energy > 200) global_w_energy = 200;
+  //Prevent negative weights
+  if(temp_w_lq < 1) temp_w_lq = 1;
+  if(temp_w_energy < 1) temp_w_energy = 1;
+
+  //Normalise the weights to add up to 100
+  int32_t total_weight = temp_w_energy + temp_w_lq;
+  global_w_lq = (temp_w_lq * 100) / total_weight;
+  global_w_energy = (temp_w_energy * 100) / total_weight;
 
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];

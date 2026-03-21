@@ -7,7 +7,7 @@
 
 //SARSA
 #define SARSA
-#define SARSA_CONF_ALPHA 10
+#define SARSA_CONF_ALPHA 2
 #define SARSA_CONF_GAMMA 80
 #define SARSA_LOGGING
 
