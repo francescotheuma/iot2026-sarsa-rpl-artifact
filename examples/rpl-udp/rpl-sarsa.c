@@ -152,7 +152,7 @@ calculate_current_q(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 
   int32_t base_q = ((global_w_energy * f_energy) + (global_w_lq * f_link_quality)) / 100;
 
-  int32_t rank_penalty = nbr->rank / 64;
+  int32_t rank_penalty = nbr->rank >> 3;
 
   return base_q - rank_penalty; 
 }
@@ -212,8 +212,15 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   /* 5. Future Value */
   int32_t future_value = (int32_t)data->next_action_q; // In SARSA, we use the Q-value of the action actually taken in the next state
 
+  int32_t target;
+  // If the neighbour is the root, we set the target to the immediate reward since there are no future states
+  if(instance != NULL && nbr->rank == ROOT_RANK){
+    target=reward;
+  } else{
+    target = ((100 - GAMMA) * reward) + ((GAMMA * future_value) / 100);
+  }
+
   /* 6. Calculate True TD Error */
-  int32_t target = (((100 - GAMMA) * reward) + (GAMMA * future_value)) / 100;
   int32_t td_error = target - current_q; 
 
   /* 7. Update Global Policy Weights */
