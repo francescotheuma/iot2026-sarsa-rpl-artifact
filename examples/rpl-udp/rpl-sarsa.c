@@ -193,7 +193,11 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   if(status == MAC_TX_OK) {
     // Reward changes based on parent battery level to encourage energy balancing
+      if (parent_battery < 50) {
+        reward = parent_battery - 200;
+      } else {
         reward = parent_battery;  
+      }
       
       if(numtx > 1){
         reward -= (20*numtx);
