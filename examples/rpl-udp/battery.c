@@ -11,13 +11,23 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 // Hardware power ratios
-#define COST_TX 10
+#ifdef CONF_COST_TX
+    #define COST_TX CONF_COST_TX
+#else
+    #define COST_TX 20
+#endif
 
 #ifdef CONF_COST_RX
     #define COST_RX CONF_COST_RX
+#else
+    #define COST_RX 20
 #endif
 
-#define COST_CPU 1
+#ifdef CONF_COST_CPU
+    #define COST_CPU CONF_COST_CPU
+#else
+    #define COST_CPU 1
+#endif
 
 // Simulated MAC layer Duty Cycle
 #define DUTY_CYCLE_PERCENT 5

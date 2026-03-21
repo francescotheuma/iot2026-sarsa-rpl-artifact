@@ -52,7 +52,7 @@ def extract_sink_receives(filepath):
     with open(filepath, 'r') as f:
         for line in f:
             # Adjust this to exactly match how your sink logs received data
-            if 'Data received' in line or 'Received message' in line:
+            if 'ID: 1' in line or 'Received request' in line:
                 receives += 1
     return receives
 
