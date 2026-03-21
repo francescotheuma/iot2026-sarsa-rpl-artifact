@@ -217,15 +217,15 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if(instance != NULL && nbr->rank == ROOT_RANK){
     target=reward;
   } else{
-    target = ((100 - GAMMA) * reward) + ((GAMMA * future_value) / 100);
+    target = reward + ((GAMMA * future_value) / 100); // div 100 for floating point math reasons
   }
 
   /* 6. Calculate True TD Error */
   int32_t td_error = target - current_q; 
 
   /* 7. Update Global Policy Weights */
-  global_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 1000); 
-  global_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 1000);
+  global_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 100); 
+  global_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 100);
 
   /* Soft bounds to prevent weights from exploding/dying */
   if(global_w_lq < 10) global_w_lq = 10;
