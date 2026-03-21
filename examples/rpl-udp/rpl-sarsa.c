@@ -236,18 +236,13 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
     
-    // Added Current Q and Next Q, and cleaned up the labels for easier reading
-    LOG_INFO("MAC: %s | Par: %d | Q: %d | Next_Q: %d | Rew: %d | TD_Err: %d | W_LQ: %d | W_ENG: %d | MyBat: %d | ParBat: %d\n",
-           (status == MAC_TX_OK) ? "OK" : "FAIL",
-           (int)nbr_id, 
-           (int)current_q, 
-           (int)future_value, 
-           (int)reward, 
-           (int)td_error, 
-           (int)global_w_lq, 
-           (int)global_w_energy, 
-           (int)(get_local_energy_est()), 
-           (int)parent_battery);
+    // LOG 1: The SARSA Math (Proves the TD Error is correct)
+    LOG_INFO("SARSA-MATH | Par: %d | curQ: %ld | rew: %ld | futQ: %ld | tgt: %ld | err: %ld\n",
+             (int)nbr_id, (long)current_q, (long)reward, (long)future_value, (long)target, (long)td_error);
+
+    // LOG 2: The Weight Update (Proves ALPHA is working)
+    LOG_INFO("SARSA-WGHT | f_lq: %ld | f_eng: %ld | W_LQ: %ld | W_ENG: %ld\n",
+             (long)f_link_quality, (long)f_energy, (long)global_w_lq, (long)global_w_energy);
   #endif
 }
 
