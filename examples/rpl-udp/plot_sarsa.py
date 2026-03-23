@@ -9,6 +9,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE_SARSA = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_sarsa.log")
 LOG_FILE_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 
+SARSA_PLOT = False
+BATTERY_PLOT = True
+
 # ==========================================
 # 1. PARSERS
 # ==========================================
@@ -56,6 +59,50 @@ def extract_sink_receives(filepath):
                 receives += 1
     return receives
 
+def extract_sarsa_internals(filepath):
+    """Extracts SARSA logs mapped perfectly to Simulation Time (Minutes)."""
+    # Regex grabs Timestamp (Group 1) and Node ID (Group 2)
+    math_pattern = re.compile(r'^\s*(\d+)\s+ID:(\d+).*?SARSA-MATH \| Par: (\d+) \| curQ: (-?\d+) \| rew: (-?\d+) \| futQ: (-?\d+) \| tgt: (-?\d+) \| err: (-?\d+)')
+    wght_pattern = re.compile(r'^\s*(\d+)\s+ID:(\d+).*?SARSA-WGHT \| f_lq: (-?\d+) \| f_eng: (-?\d+) \| W_LQ: (-?\d+) \| W_ENG: (-?\d+)')
+    
+    math_data = []
+    wght_data = []
+    
+    if not os.path.exists(filepath): return pd.DataFrame(), pd.DataFrame()
+        
+    with open(filepath, 'r') as f:
+        for line in f:
+            if 'SARSA-MATH' in line:
+                m = math_pattern.search(line)
+                if m:
+                    math_data.append({
+                        'ts_mins': int(m.group(1)) / 60_000_000, # Convert microseconds to minutes
+                        'node': int(m.group(2)),
+                        'par': int(m.group(3)),
+                        'curQ': int(m.group(4)),
+                        'tgt': int(m.group(7)),
+                        'err': int(m.group(8))
+                    })
+            elif 'SARSA-WGHT' in line:
+                w = wght_pattern.search(line)
+                if w:
+                    wght_data.append({
+                        'ts_mins': int(w.group(1)) / 60_000_000,
+                        'node': int(w.group(2)),
+                        'w_lq': int(w.group(5)),
+                        'w_eng': int(w.group(6))
+                    })
+                    
+    df_math = pd.DataFrame(math_data)
+    df_wght = pd.DataFrame(wght_data)
+    
+    # GLOBAL OUTLIER FILTER: Destroys the -8122 startup bug across all columns
+    if not df_math.empty:
+        df_math = df_math[(df_math['curQ'].between(-500, 500)) & 
+                          (df_math['tgt'].between(-500, 500)) & 
+                          (df_math['err'].between(-500, 500))]
+        
+    return df_math, df_wght
 # ==========================================
 # 2. PLOTTING
 # ==========================================
@@ -93,6 +140,60 @@ def plot_battery_comparison(df_sarsa, df_mrhof):
     plt.savefig(os.path.join(SCRIPT_DIR, "plot_A_B_battery_test.png"), dpi=300)
     print("Saved: plot_A_B_battery_test.png")
 
+def plot_sarsa_learning(df_math, df_wght):
+    """Plots internal SARSA metrics mapped to Simulation Minutes."""
+    if df_math.empty or df_wght.empty:
+        print("No SARSA internal logs found. Skipping ML plots.")
+        return
+        
+    # --- Plot 1: Weights Stabilization (Mapped to Minutes) ---
+    plt.figure(figsize=(12, 6))
+    colors = ['blue', 'green', 'purple', 'orange']
+    for i, node in enumerate(sorted(df_wght['node'].unique())):
+        nd = df_wght[df_wght['node'] == node].copy()
+        c = colors[i % len(colors)]
+        plt.plot(nd['ts_mins'], nd['w_lq'], label=f'Node {node} W_LQ', color=c, linestyle='-', linewidth=2)
+        plt.plot(nd['ts_mins'], nd['w_eng'], label=f'Node {node} W_ENG', color=c, linestyle='--', linewidth=2)
+        
+    plt.title('SARSA Policy Weights Over Time (Per Node)')
+    plt.xlabel('Simulation Time (Minutes)')
+    plt.ylabel('Weight Value')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_sarsa_weights.png"), dpi=300)
+    print("Saved: plot_sarsa_weights.png")
+    
+    # --- Plot 2: TD Error Convergence (Mapped to Minutes) ---
+    plt.figure(figsize=(12, 6))
+    for node in sorted(df_math['node'].unique()):
+        nd = df_math[df_math['node'] == node].copy()
+        plt.plot(nd['ts_mins'], nd['err'], label=f'Node {node} TD Error (δ)', alpha=0.7, marker='.', markersize=4)
+        
+    plt.axhline(0, color='black', linestyle='--', linewidth=2)
+    plt.title('Temporal Difference (TD) Error Convergence (Per Node)')
+    plt.xlabel('Simulation Time (Minutes)')
+    plt.ylabel('TD Error Value')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_sarsa_tderror.png"), dpi=300)
+    print("Saved: plot_sarsa_tderror.png")
+
+    # --- Plot 3: Q-Values Per Specific Route (Mapped to Minutes) ---
+    plt.figure(figsize=(12, 6))
+    for (node, par), group in df_math.groupby(['node', 'par']):
+        grp = group.copy()
+        plt.plot(grp['ts_mins'], grp['curQ'], label=f'Path: Node {node} -> {par}', linewidth=2, marker='.', markersize=6)
+        
+    plt.title('SARSA Action-Values (Q-Values) Per Link')
+    plt.xlabel('Simulation Time (Minutes)')
+    plt.ylabel('Q-Value (Reward Prediction)')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_sarsa_qvalues.png"), dpi=300)
+    print("Saved: plot_sarsa_qvalues.png")
 # ==========================================
 # 3. EXECUTION & REPORTING
 # ==========================================
@@ -103,6 +204,8 @@ if __name__ == "__main__":
     sarsa_batt = extract_battery_samples(LOG_FILE_SARSA)
     mrhof_batt = extract_battery_samples(LOG_FILE_MRHOF)
     
+    sarsa_math, sarsa_wght = extract_sarsa_internals(LOG_FILE_SARSA)
+
     sarsa_sent = sum(extract_throughput(LOG_FILE_SARSA).values())
     mrhof_sent = sum(extract_throughput(LOG_FILE_MRHOF).values())
     
@@ -125,10 +228,6 @@ if __name__ == "__main__":
         print(f"SARSA -> Node 2: {s_n2}%, Node 3: {s_n3}% | Variance: {s_var}%")
         print(f"MRHOF -> Node 2: {m_n2}%, Node 3: {m_n3}% | Variance: {m_var}%")
         
-        if s_var > 10:
-            print("  ⚠️ SARSA Variance is high. Penalty might be too aggressive (Node 3 starved).")
-        elif s_var < m_var:
-            print("  ✅ SARSA improved load balancing over MRHOF!")
     
     # PDR
     print("\n[ Packet Delivery Ratio (PDR) ]")
@@ -138,5 +237,11 @@ if __name__ == "__main__":
         print(f"MRHOF PDR: {(mrhof_rec / mrhof_sent) * 100:.2f}% ({mrhof_rec}/{mrhof_sent})")
     
     print("========================\n")
-    
-    plot_battery_comparison(sarsa_batt, mrhof_batt)
+
+    if SARSA_PLOT:
+            plot_sarsa_learning(sarsa_math, sarsa_wght)
+            
+    if BATTERY_PLOT:
+            plot_battery_comparison(sarsa_batt, mrhof_batt)
+
+    print("Done!")
