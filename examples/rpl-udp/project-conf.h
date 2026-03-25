@@ -12,7 +12,7 @@
 //#define SARSA_LOGGING
 
 //Battery settings
-#define CONF_DRAIN_MAGNITUDE 250
+#define CONF_DRAIN_MAGNITUDE 20
 #define CONF_COST_RX 0
 #define CONF_COST_TX 60
 #define CONF_COST_CPU 20

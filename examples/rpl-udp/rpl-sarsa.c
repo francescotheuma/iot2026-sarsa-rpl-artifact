@@ -29,6 +29,8 @@
 
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
+#define MAX_WEIGHT 1000
+#define MIN_WEIGHT -1000
 
 // Struct to house the SARSA-related node values
 typedef struct {
@@ -226,6 +228,14 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   /* 7. Update Global Policy Weights */
   global_w_lq += ((ALPHA * td_error * f_link_quality) / 10000); 
   global_w_energy += ((ALPHA * td_error * f_energy) / 10000);
+
+  // Weight clipping
+  if (global_w_lq > MAX_WEIGHT) global_w_lq = MAX_WEIGHT;
+  if (global_w_energy > MAX_WEIGHT) global_w_energy = MAX_WEIGHT;
+
+  if(global_w_energy > MAX_WEIGHT) global_w_energy = MAX_WEIGHT;
+  if(global_w_energy < MIN_WEIGHT) global_w_energy = MIN_WEIGHT;
+
 
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
