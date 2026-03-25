@@ -76,7 +76,7 @@ get_sarsa_data(rpl_nbr_t *nbr)
 
 
 /*---------------------------------------------------------------------------*/
-// NEW STUFF FOR REBIRTH
+// 2-hop additions
 #include "contiki.h"
 int16_t my_current_action_q = 0; // global variable for best parent Q-value
 
@@ -224,8 +224,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t td_error = target - current_q; 
 
   /* 7. Update Global Policy Weights */
-  int32_t temp_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 100); 
-  int32_t temp_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 100);
+  int32_t temp_w_lq = global_w_lq + ((ALPHA * td_error * f_link_quality) / 10000); 
+  int32_t temp_w_energy = global_w_energy + ((ALPHA * td_error * f_energy) / 10000);
 
   //Prevent negative weights
   if(temp_w_lq < 1) temp_w_lq = 1;

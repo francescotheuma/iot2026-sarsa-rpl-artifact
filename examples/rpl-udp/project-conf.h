@@ -9,13 +9,13 @@
 #define SARSA
 #define SARSA_CONF_ALPHA 10
 #define SARSA_CONF_GAMMA 80
-#define SARSA_LOGGING
+//#define SARSA_LOGGING
 
 //Battery settings
-#define CONF_DRAIN_MAGNITUDE 10
+#define CONF_DRAIN_MAGNITUDE 250
 #define CONF_COST_RX 0
-#define CONF_COST_TX 500
-#define CONF_COST_CPU 1
+#define CONF_COST_TX 60
+#define CONF_COST_CPU 20
 
 /* =====================*/
 

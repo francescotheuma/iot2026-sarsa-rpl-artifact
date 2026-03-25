@@ -9,8 +9,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE_SARSA = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_sarsa.log")
 LOG_FILE_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 
-SARSA_PLOT = True
-BATTERY_PLOT = False
+SARSA_PLOT = False
+BATTERY_PLOT = True
 
 # ==========================================
 # 1. PARSERS
@@ -137,8 +137,8 @@ def plot_battery_comparison(df_sarsa, df_mrhof):
     axes[1].legend()
 
     plt.tight_layout()
-    plt.savefig(os.path.join(SCRIPT_DIR, "plot_A_B_battery_test.png"), dpi=300)
-    print("Saved: plot_A_B_battery_test.png")
+    plt.savefig(os.path.join(SCRIPT_DIR, "plot_OF_battery_comparison.png"), dpi=300)
+    print("Saved: plot_OF_battery_comparison.png")
 
 def plot_sarsa_learning(df_math, df_wght):
     """Plots internal SARSA metrics mapped to Simulation Minutes."""
