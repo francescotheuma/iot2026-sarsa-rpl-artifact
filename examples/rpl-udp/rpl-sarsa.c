@@ -33,7 +33,7 @@
 #define MIN_WEIGHT -1000
 
 #define LEARNING_BATCH_SIZE 7
-#define SARSA_HYSTERESIS 5
+#define SARSA_HYSTERESIS 0
 
 // Struct to house the SARSA-related node values
 typedef struct {

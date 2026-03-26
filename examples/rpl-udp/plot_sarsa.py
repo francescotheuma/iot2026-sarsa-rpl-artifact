@@ -17,8 +17,9 @@ BATTERY_PLOT = True
 # ==========================================
 
 def extract_battery_samples(filepath):
-    """Parses periodic hardware battery ticks and percentages."""
-    pattern = re.compile(r"BATTERY_SAMPLE:\s*node=(?P<node>\d+),\s*batt=(?P<batt>\d+)")
+    """Parses periodic hardware battery ticks, time, TX, and CPU."""
+    # Updated Regex to capture Time, TX, and CPU!
+    pattern = re.compile(r"^\s*(?P<ts>\d+)\s+.*BATTERY_SAMPLE:\s*node=(?P<node>\d+),\s*batt=(?P<batt>\d+),\s*TX=(?P<tx>\d+),\s*RX=(?P<rx>\d+),\s*CPU=(?P<cpu>\d+)")
     records = []
     if not os.path.exists(filepath): return pd.DataFrame()
     
@@ -28,10 +29,14 @@ def extract_battery_samples(filepath):
                 match = pattern.search(line)
                 if match:
                     records.append({
+                        'time_mins': int(match.group('ts')) / 60_000_000, # Convert us to Mins
                         'node': int(match.group('node')),
-                        'batt': int(match.group('batt'))
+                        'batt': int(match.group('batt')),
+                        'tx': int(match.group('tx')),
+                        'cpu': int(match.group('cpu'))
                     })
     df = pd.DataFrame(records)
+    # We can keep sample_idx just in case you ever want to switch back to it
     if not df.empty:
         df['sample_idx'] = df.groupby('node').cumcount() + 1
     return df
@@ -54,8 +59,8 @@ def extract_sink_receives(filepath):
     if not os.path.exists(filepath): return 0
     with open(filepath, 'r') as f:
         for line in f:
-            # Adjust this to exactly match how your sink logs received data
-            if 'ID: 1' in line or 'Received request' in line:
+            # FIXED: Uses 'and' to strictly match Node 1 receiving an app packet
+            if 'ID:1 ' in line and 'Received request' in line:
                 receives += 1
     return receives
 
@@ -108,48 +113,68 @@ def extract_sarsa_internals(filepath):
 # ==========================================
 
 def plot_battery_comparison(df_sarsa, df_mrhof):
-    """Draws a side-by-side comparison of battery drain to prove load balancing."""
+    """Draws a side-by-side comparison of battery drain with CPU/TX stats."""
     if df_sarsa.empty or df_mrhof.empty: 
         print("Missing data for plots.")
         return
         
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    # Made the figure slightly wider to accommodate the data boxes
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
     
+    # Helper to plot and annotate
     # Helper to plot and annotate
     def plot_and_label(df, ax, title):
         ax.set_title(title, fontsize=14, fontweight='bold')
 
+        # Removed the table headers, just a clean title
+        summary_text = "Final Stats:\n"
+
         for node in sorted(df['node'].unique()):
             if node == 1: continue # skip sink node
-            nd = df[df['node']== node]
+            nd = df[df['node'] == node]
+
+            x_col = 'time_mins'
 
             # Plot the line
-            line, = ax.plot(nd['sample_idx'], nd['batt'], label=f'Node {node}', linewidth=2)
+            line, = ax.plot(nd[x_col], nd['batt'], label=f'Node {node}', linewidth=2)
 
-            # Add percentage label
-            final_x = nd['sample_idx'].iloc[-1]
+            # Extract final values
+            final_x = nd[x_col].iloc[-1]
             final_y = nd['batt'].iloc[-1]
+            final_cpu = nd['cpu'].iloc[-1] 
+            final_tx = nd['tx'].iloc[-1] 
+            
+            # Format cleanly inline with commas for thousands! No monospace required.
+            summary_text += f"Node {node}: CPU {final_cpu:,} | TX {final_tx:,}\n"
 
+            # Add battery percentage label at the end of the line
             ax.text(
-                final_x + 0.5,
+                final_x + (final_x * 0.02),
                 final_y,
-                f'{final_y}',
+                f'{final_y}%',
                 color=line.get_color(),
                 fontweight='bold',
                 va='center'
             )
 
-        ax.set_xlabel("Sample Index")
-        ax.legend(loc="lower left")
+        ax.set_xlabel("Time (Minutes)", fontweight='bold')
+        
+        # Set legend to 'best' so it tries to avoid covering your lines
+        ax.legend(loc="best", framealpha=0.8) 
         ax.grid(True, linestyle='--', alpha=0.6)
+        
+        # Draw the summary box in the top right corner
+        # Lowered y to 0.96 so it doesn't clip the top border
+        props = dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.9, edgecolor='gray')
+        ax.text(0.96, 0.96, summary_text.strip(), transform=ax.transAxes, 
+                fontsize=10, verticalalignment='top', 
+                horizontalalignment='right', bbox=props)
             
     # Execute sub-plots
     plot_and_label(df_sarsa, axes[0], "SARSA")
     plot_and_label(df_mrhof, axes[1], "MRHOF")
 
-    axes[0].set_ylabel("Battery %")
-
-    plt.subplots_adjust(right=0.9)
+    axes[0].set_ylabel("Battery %", fontweight='bold')
 
     plt.tight_layout()
     plt.savefig(os.path.join(SCRIPT_DIR, "plot_OF_battery_comparison.png"), dpi=300)
