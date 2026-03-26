@@ -32,7 +32,7 @@
 #define MAX_WEIGHT 1000
 #define MIN_WEIGHT -1000
 
-#define LEARNING_BATCH_SIZE 10
+#define LEARNING_BATCH_SIZE 7
 #define SARSA_HYSTERESIS 5
 
 // Struct to house the SARSA-related node values
