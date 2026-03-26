@@ -34,11 +34,13 @@
 #define SARSA_HYSTERESIS 25
 #define CRITICAL_BATT_THRESHOLD 15
 #define CRITICAL_BATT_PENALTY 200
+#define LEARNING_BATCH_SIZE 10
 
 // Struct to house the SARSA-related node values
 typedef struct {
   int32_t energy_level;
-  int16_t next_action_q;   //Rebirth
+  int16_t next_action_q;  
+  uint8_t learning_counter;
 } sarsa_nbr_t;
 
 // GLOBAL WEIGHTS
@@ -74,6 +76,7 @@ get_sarsa_data(rpl_nbr_t *nbr)
     if(s_data != NULL) {
       s_data->energy_level = 100; // to prevent initial bias against new neighbours with unknown energy levels
       s_data->next_action_q = 100; //Optimistic initialisation for next action Q-value
+      s_data->learning_counter = 0;
     }
   }
   return s_data;
@@ -198,6 +201,14 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   data->energy_level = nbr->mc.obj.energy.energy_est; // Update energy level with latest estimate from DIOs
 
+  if(status == MAC_TX_OK) {
+      data->learning_counter++;
+      if(data->learning_counter < LEARNING_BATCH_SIZE) {
+          return; // Skip the heavy math and go back to sleep!
+      }
+      data->learning_counter = 0; // Reset counter and proceed to math
+  }
+  
   /* 3. The True Environmental Reward */
   int32_t reward = 0;
   int32_t parent_battery = (int32_t)data->energy_level;
