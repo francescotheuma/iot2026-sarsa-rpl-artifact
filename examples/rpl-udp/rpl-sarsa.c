@@ -31,6 +31,9 @@
 #define MAX_PATH_COST       32768 
 #define MAX_WEIGHT 1000
 #define MIN_WEIGHT -1000
+#define SARSA_HYSTERESIS 25
+#define CRITICAL_BATT_THRESHOLD 15
+#define CRITICAL_BATT_PENALTY 200
 
 // Struct to house the SARSA-related node values
 typedef struct {
@@ -156,7 +159,13 @@ calculate_current_q(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 
   int32_t rank_penalty = nbr->rank >> 3;
 
-  return base_q - rank_penalty; 
+  int32_t final_q = base_q - rank_penalty;
+
+  if(f_energy <= CRITICAL_BATT_THRESHOLD) {
+    final_q -= CRITICAL_BATT_PENALTY;
+  }
+
+  return final_q; 
 }
 /*---------------------------------------------------------------------------*/
 
@@ -194,11 +203,15 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t parent_battery = (int32_t)data->energy_level;
 
   if(status == MAC_TX_OK) {
-    // Reward changes based on parent battery level to encourage energy balancing
-        reward = parent_battery;  
-      
-      if(numtx > 1){
-        reward -= (20*numtx);
+      /* --- NEW: Punish the AI for using a dying node --- */
+      if(parent_battery <= CRITICAL_BATT_THRESHOLD) {
+          reward = -200; // Severe punishment to adjust weights away from dying nodes
+      } else {
+          // Normal balanced reward
+          reward = parent_battery;  
+          if(numtx > 1){
+              reward -= (20*numtx);
+          }
       }
   } else {
       reward = -100; // Massive penalty for dropped packet
@@ -273,10 +286,10 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 
   // +5 is a small bias to prevent Hysterisis
   if(p1 == curr_instance.dag.preferred_parent) {
-      best = (q1 + 5 >= q2) ? p1 : p2; 
+      best = (q1 + SARSA_HYSTERESIS >= q2) ? p1 : p2; 
   }
   else if(p2 == curr_instance.dag.preferred_parent) {
-      best = (q2 + 5 >= q1) ? p2 : p1;
+      best = (q2 + SARSA_HYSTERESIS >= q1) ? p2 : p1;
   }
   else{
     best = (q1 > q2) ? p1 : p2;
