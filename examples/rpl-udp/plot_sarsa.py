@@ -9,8 +9,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE_SARSA = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_sarsa.log")
 LOG_FILE_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 
-SARSA_PLOT = False
-BATTERY_PLOT = True
+SARSA_PLOT = True
+BATTERY_PLOT = False
 
 # ==========================================
 # 1. PARSERS
@@ -149,7 +149,7 @@ def plot_battery_comparison(df_sarsa, df_mrhof):
 
             # Add battery percentage label at the end of the line
             ax.text(
-                final_x + (final_x * 0.02),
+                final_x + (final_x * 0.05),
                 final_y,
                 f'{final_y}%',
                 color=line.get_color(),
