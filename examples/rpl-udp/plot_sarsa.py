@@ -115,26 +115,41 @@ def plot_battery_comparison(df_sarsa, df_mrhof):
         
     fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
     
-    # Left: SARSA
-    for node in sorted(df_sarsa['node'].unique()):
-        if node == 1: continue # Skip sink
-        nd = df_sarsa[df_sarsa['node'] == node]
-        axes[0].plot(nd['sample_idx'], nd['batt'], label=f'Node {node}', linewidth=2)
-    axes[0].set_title("SARSA (Balanced Drain)")
-    axes[0].set_xlabel("Sample Index")
-    axes[0].set_ylabel("Battery %")
-    axes[0].grid(True, linestyle='--', alpha=0.6)
-    axes[0].legend()
+    # Helper to plot and annotate
+    def plot_and_label(df, ax, title):
+        ax.set_title(title, fontsize=14, fontweight='bold')
 
-    # Right: MRHOF
-    for node in sorted(df_mrhof['node'].unique()):
-        if node == 1: continue # Skip sink
-        nd = df_mrhof[df_mrhof['node'] == node]
-        axes[1].plot(nd['sample_idx'], nd['batt'], label=f'Node {node}', linewidth=2)
-    axes[1].set_title("MRHOF (Single Path Drain)")
-    axes[1].set_xlabel("Sample Index")
-    axes[1].grid(True, linestyle='--', alpha=0.6)
-    axes[1].legend()
+        for node in sorted(df['node'].unique()):
+            if node == 1: continue # skip sink node
+            nd = df[df['node']== node]
+
+            # Plot the line
+            line, = ax.plot(nd['sample_idx'], nd['batt'], label=f'Node {node}', linewidth=2)
+
+            # Add percentage label
+            final_x = nd['sample_idx'].iloc[-1]
+            final_y = nd['batt'].iloc[-1]
+
+            ax.text(
+                final_x + 0.5,
+                final_y,
+                f'{final_y}',
+                color=line.get_color(),
+                fontweight='bold',
+                va='center'
+            )
+
+        ax.set_xlabel("Sample Index")
+        ax.legend(loc="lower left")
+        ax.grid(True, linestyle='--', alpha=0.6)
+            
+    # Execute sub-plots
+    plot_and_label(df_sarsa, axes[0], "SARSA")
+    plot_and_label(df_mrhof, axes[1], "MRHOF")
+
+    axes[0].set_ylabel("Battery %")
+
+    plt.subplots_adjust(right=0.9)
 
     plt.tight_layout()
     plt.savefig(os.path.join(SCRIPT_DIR, "plot_OF_battery_comparison.png"), dpi=300)
