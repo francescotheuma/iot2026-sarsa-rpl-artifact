@@ -31,10 +31,9 @@
 #define MAX_PATH_COST       32768 
 #define MAX_WEIGHT 1000
 #define MIN_WEIGHT -1000
-#define SARSA_HYSTERESIS 25
-#define CRITICAL_BATT_THRESHOLD 15
-#define CRITICAL_BATT_PENALTY 200
+
 #define LEARNING_BATCH_SIZE 10
+#define SARSA_HYSTERESIS 5
 
 // Struct to house the SARSA-related node values
 typedef struct {
@@ -162,13 +161,7 @@ calculate_current_q(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 
   int32_t rank_penalty = nbr->rank >> 3;
 
-  int32_t final_q = base_q - rank_penalty;
-
-  if(f_energy <= CRITICAL_BATT_THRESHOLD) {
-    final_q -= CRITICAL_BATT_PENALTY;
-  }
-
-  return final_q; 
+  return base_q - rank_penalty; 
 }
 /*---------------------------------------------------------------------------*/
 
@@ -214,16 +207,11 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   int32_t parent_battery = (int32_t)data->energy_level;
 
   if(status == MAC_TX_OK) {
-      /* --- NEW: Punish the AI for using a dying node --- */
-      if(parent_battery <= CRITICAL_BATT_THRESHOLD) {
-          reward = -200; // Severe punishment to adjust weights away from dying nodes
-      } else {
-          // Normal balanced reward
           reward = parent_battery;  
           if(numtx > 1){
               reward -= (20*numtx);
           }
-      }
+      
   } else {
       reward = -100; // Massive penalty for dropped packet
   }
