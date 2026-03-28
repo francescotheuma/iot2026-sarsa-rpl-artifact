@@ -9,8 +9,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE_SARSA = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_sarsa.log")
 LOG_FILE_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 
-SARSA_PLOT = True
-BATTERY_PLOT = False
+SARSA_PLOT = False
+BATTERY_PLOT = True
 
 # ==========================================
 # 1. PARSERS
