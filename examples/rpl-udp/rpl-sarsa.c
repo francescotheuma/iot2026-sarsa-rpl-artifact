@@ -250,8 +250,8 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
   if (global_w_lq > MAX_WEIGHT) global_w_lq = MAX_WEIGHT;
   if (global_w_energy > MAX_WEIGHT) global_w_energy = MAX_WEIGHT;
 
-  if(global_w_energy > MAX_WEIGHT) global_w_energy = MAX_WEIGHT;
   if(global_w_energy < MIN_WEIGHT) global_w_energy = MIN_WEIGHT;
+  if(global_w_lq < MIN_WEIGHT) global_w_lq= MIN_WEIGHT;
 
 
   #ifdef SARSA_LOGGING
