@@ -199,13 +199,11 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   data->energy_level = nbr->mc.obj.energy.energy_est; // Update energy level with latest estimate from DIOs
 
-  if(status == MAC_TX_OK) {
-      data->learning_counter++;
-      if(data->learning_counter < LEARNING_BATCH_SIZE) {
-          return; // Skip the heavy math and go back to sleep!
-      }
-      data->learning_counter = 0; // Reset counter and proceed to math
+  data->learning_counter++;
+  if(data->learning_counter < LEARNING_BATCH_SIZE) {
+      return; // Skip the heavy math and go back to sleep!
   }
+  data->learning_counter = 0; // Reset counter and proceed to math
   
   /* 3. The True Environmental Reward */
   int32_t reward = 0;
