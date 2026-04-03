@@ -164,7 +164,7 @@ calculate_current_q(rpl_nbr_t *nbr, sarsa_nbr_t *data)
 
   int32_t base_q = ((global_w_energy * f_energy) + (global_w_lq * f_link_quality)) / 100;
 
-  int32_t rank_penalty = nbr->rank >> 3;
+  int32_t rank_penalty = ((nbr->rank >> 3) * (100 - f_energy)) / 100;
 
   return base_q - rank_penalty; 
 }
