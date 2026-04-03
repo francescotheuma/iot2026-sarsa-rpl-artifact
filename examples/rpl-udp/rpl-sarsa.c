@@ -38,7 +38,7 @@
   #define LEARNING_BATCH_SIZE 7
 #endif
 
-#define SARSA_HYSTERESIS 0
+#define SARSA_HYSTERESIS 8
 
 // Struct to house the SARSA-related node values
 typedef struct {
