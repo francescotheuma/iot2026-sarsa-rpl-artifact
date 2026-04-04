@@ -5,6 +5,7 @@
 #include "sys/clock.h" 
 #include "random.h" 
 #include "battery.h"
+#include "energest.h"
 
 /* Log configuration */
 #define LOG_MODULE "RPL-SARSA"
@@ -60,7 +61,9 @@ reset(void)
 {
 
   #ifdef SARSA_LOGGING
+    ENERGEST_OFF(ENERGEST_TYPE_CPU);
     LOG_INFO("Resetting SARSA LFA OF and initializing Q-Table\n");
+    ENERGEST_ON(ENERGEST_TYPE_CPU);
   #endif
   nbr_table_register(sarsa_neighbors, NULL);
 }
@@ -254,7 +257,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   #ifdef SARSA_LOGGING
     uint16_t nbr_id = rpl_neighbor_get_lladdr(nbr)->u8[LINKADDR_SIZE - 1];
-    
+    ENERGEST_OFF(ENERGEST_TYPE_CPU);
     // LOG 1: The SARSA Math (Proves the TD Error is correct)
     LOG_INFO("SARSA-MATH | Par: %d | curQ: %ld | rew: %ld | futQ: %ld | tgt: %ld | err: %ld\n",
              (int)nbr_id, (long)current_q, (long)reward, (long)future_value, (long)target, (long)td_error);
@@ -262,6 +265,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
     // LOG 2: The Weight Update (Proves ALPHA is working)
     LOG_INFO("SARSA-WGHT | f_lq: %ld | f_eng: %ld | W_LQ: %ld | W_ENG: %ld\n",
              (long)f_link_quality, (long)f_energy, (long)global_w_lq, (long)global_w_energy);
+    ENERGEST_ON(ENERGEST_TYPE_CPU);
   #endif
 }
 
@@ -308,9 +312,10 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
       uint16_t id1 = rpl_neighbor_get_lladdr(p1)->u8[LINKADDR_SIZE - 1];
       uint16_t id2 = rpl_neighbor_get_lladdr(p2)->u8[LINKADDR_SIZE - 1];
       uint16_t best_id = rpl_neighbor_get_lladdr(best)->u8[LINKADDR_SIZE - 1];
-      
+      ENERGEST_OFF(ENERGEST_TYPE_CPU);
       LOG_INFO("EVALUATE: P1: %d (Q: %d) vs P2: %d (Q: %d) -> CHOSE: %d\n", 
                (int)id1, (int)q1, (int)id2, (int)q2, (int)best_id);
+      ENERGEST_ON(ENERGEST_TYPE_CPU);
     }
   #endif
 
