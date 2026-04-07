@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <battery.h>
+#include "energest.h"
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -16,6 +17,22 @@
 #define UDP_SERVER_PORT	5678
 
 #define SEND_INTERVAL		  (10 * CLOCK_SECOND)
+
+/* Federated learning payload structs — must match udp-server.c */
+typedef struct {
+  uint32_t seq;
+  int32_t  w_lq;
+  int32_t  w_energy;
+} __attribute__((packed)) udp_fed_payload_t;
+
+typedef struct {
+  int32_t  agg_w_lq;
+  int32_t  agg_w_energy;
+  uint8_t  num_nodes;
+} __attribute__((packed)) udp_fed_reply_t;
+
+extern void sarsa_get_weights(int32_t *w_lq, int32_t *w_energy);
+extern void sarsa_apply_federated_weights(int32_t agg_w_lq, int32_t agg_w_energy);
 
 static struct simple_udp_connection udp_conn;
 static uint32_t rx_count = 0;
@@ -34,11 +51,23 @@ udp_rx_callback(struct simple_udp_connection *c,
          uint16_t datalen)
 {
 
-  LOG_INFO("Received response '%.*s' from ", datalen, (char *) data);
-  LOG_INFO_6ADDR(sender_addr);
-#if LLSEC802154_CONF_ENABLED
-  LOG_INFO_(" LLSEC LV:%d", uipbuf_get_attr(UIPBUF_ATTR_LLSEC_LEVEL));
-#endif
+  if(datalen == sizeof(udp_fed_reply_t)) {
+    const udp_fed_reply_t *reply = (const udp_fed_reply_t *)data;
+    LOG_INFO("Received response '%.*s' from ", datalen, (char *) data);
+    LOG_INFO_6ADDR(sender_addr);
+    sarsa_apply_federated_weights(reply->agg_w_lq, reply->agg_w_energy);
+    #ifdef SARSA_LOGGING
+        ENERGEST_OFF(ENERGEST_TYPE_CPU);
+        LOG_INFO_("\n");
+        LOG_INFO("FL-UPDATE | agg_lq: %ld | agg_eng: %ld | n=%u | from ",
+                (long)reply->agg_w_lq, (long)reply->agg_w_energy, (unsigned)reply->num_nodes);
+        LOG_INFO_6ADDR(sender_addr);
+        ENERGEST_ON(ENERGEST_TYPE_CPU);
+    #endif /* SARSA_LOGGING */
+  }
+  #if LLSEC802154_CONF_ENABLED
+    LOG_INFO_(" LLSEC LV:%d", uipbuf_get_attr(UIPBUF_ATTR_LLSEC_LEVEL));
+  #endif
   LOG_INFO_("\n");
   rx_count++;
 }
@@ -46,7 +75,6 @@ udp_rx_callback(struct simple_udp_connection *c,
 PROCESS_THREAD(udp_client_process, ev, data)
 {
   static struct etimer periodic_timer;
-  static char str[32];
   uip_ipaddr_t dest_ipaddr;
   static uint32_t tx_count;
   static uint32_t missed_tx_count;
@@ -76,8 +104,10 @@ PROCESS_THREAD(udp_client_process, ev, data)
       LOG_INFO("Sending request %"PRIu32" to ", tx_count);
       LOG_INFO_6ADDR(&dest_ipaddr);
       LOG_INFO_("\n");
-      snprintf(str, sizeof(str), "hello %" PRIu32 "", tx_count);
-      simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
+      udp_fed_payload_t payload;
+      payload.seq = tx_count;
+      sarsa_get_weights(&payload.w_lq, &payload.w_energy);
+      simple_udp_sendto(&udp_conn, &payload, sizeof(payload), &dest_ipaddr);
       tx_count++;
     } else {
       LOG_INFO("Not reachable yet\n");
