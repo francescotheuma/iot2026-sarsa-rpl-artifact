@@ -33,6 +33,12 @@
 #define MAX_WEIGHT 1000
 #define MIN_WEIGHT -1000
 
+#ifdef FL_CONF_BLEND
+  #define FL_BLEND FL_CONF_BLEND
+#else
+  #define FL_BLEND 20
+#endif
+
 #ifdef SARSA_CONF_LEARNING_BATCH_SIZE
   #define LEARNING_BATCH_SIZE SARSA_CONF_LEARNING_BATCH_SIZE
 #else
@@ -107,6 +113,30 @@ void sarsa_save_neighbor_q(const uip_ipaddr_t *from_ip, int16_t received_q){
       sarsa_data->next_action_q = received_q;
     }
   }
+}
+
+void sarsa_get_weights(int32_t *w_lq, int32_t *w_energy)
+{
+  *w_lq = global_w_lq;
+  *w_energy = global_w_energy;
+}
+
+void sarsa_apply_federated_weights(int32_t agg_w_lq, int32_t agg_w_energy)
+{
+  global_w_lq     = ((int32_t)(100 - FL_BLEND) * global_w_lq     + (int32_t)FL_BLEND * agg_w_lq)     / 100;
+  global_w_energy = ((int32_t)(100 - FL_BLEND) * global_w_energy + (int32_t)FL_BLEND * agg_w_energy) / 100;
+
+  if(global_w_lq > MAX_WEIGHT) global_w_lq = MAX_WEIGHT;
+  if(global_w_energy > MAX_WEIGHT) global_w_energy = MAX_WEIGHT;
+  if(global_w_lq < MIN_WEIGHT) global_w_lq = MIN_WEIGHT;
+  if(global_w_energy < MIN_WEIGHT) global_w_energy = MIN_WEIGHT;
+
+  #ifdef SARSA_LOGGING
+    ENERGEST_OFF(ENERGEST_TYPE_CPU);
+    LOG_INFO("FL-APPLY | agg_lq: %ld | agg_eng: %ld | W_LQ: %ld | W_ENG: %ld\n",
+             (long)agg_w_lq, (long)agg_w_energy, (long)global_w_lq, (long)global_w_energy);
+    ENERGEST_ON(ENERGEST_TYPE_CPU);
+  #endif
 }
 
 
