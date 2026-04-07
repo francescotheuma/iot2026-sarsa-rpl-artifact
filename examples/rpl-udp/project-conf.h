@@ -6,14 +6,13 @@
 /* =====================*/
 
 //SARSA
-#define SARSA
+//#define SARSA
 #define SARSA_CONF_ALPHA 10
 #define SARSA_CONF_GAMMA 80
 #define SARSA_CONF_LEARNING_BATCH_SIZE 7
-#define SARSA_LOGGING
 
 //Battery settings
-#define CONF_DRAIN_MAGNITUDE 100
+#define CONF_DRAIN_MAGNITUDE 25
 #define CONF_COST_RX 0
 #define CONF_COST_TX 60
 #define CONF_COST_CPU 20
@@ -25,6 +24,7 @@
     #undef RPL_CONF_OF_OCP
     #define RPL_CONF_OF_OCP 10
     #define SARSA_ENABLED
+    #define SARSA_LOGGING
 #endif
 
 #define RPL_CONF_WITH_MC 1

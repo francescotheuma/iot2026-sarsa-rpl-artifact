@@ -133,9 +133,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 Server</description>
-      <source>[CONFIG_DIR]/udp-server.c</source>
+      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-server.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-server.z1 TARGET=z1</commands>
-      <firmware>[CONFIG_DIR]/build/z1/udp-server.z1</firmware>
+      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-server.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
@@ -161,9 +161,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 Client</description>
-      <source>[CONFIG_DIR]/udp-client.c</source>
+      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-client.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-client.z1 TARGET=z1</commands>
-      <firmware>[CONFIG_DIR]/build/z1/udp-client.z1</firmware>
+      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-client.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
