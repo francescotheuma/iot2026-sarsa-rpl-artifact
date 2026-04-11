@@ -107,7 +107,7 @@
         <dest>
           org.contikios.cooja.radiomediums.DGRMDestinationRadio
           <radio>4</radio>
-          <ratio>0.5000000000000001</ratio>
+          <ratio>0.8</ratio>
           <signal>-10.0</signal>
           <lqi>105</lqi>
           <delay>0</delay>
@@ -119,7 +119,7 @@
         <dest>
           org.contikios.cooja.radiomediums.DGRMDestinationRadio
           <radio>3</radio>
-          <ratio>0.5000000000000001</ratio>
+          <ratio>0.8</ratio>
           <signal>-10.0</signal>
           <lqi>105</lqi>
           <delay>0</delay>
