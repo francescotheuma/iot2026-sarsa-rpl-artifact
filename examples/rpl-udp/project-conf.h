@@ -10,7 +10,6 @@
 #define SARSA_CONF_ALPHA 10
 #define SARSA_CONF_GAMMA 80
 #define SARSA_CONF_LEARNING_BATCH_SIZE 7
-#define SARSA_LOGGING
 
 //Battery settings
 #define CONF_DRAIN_MAGNITUDE 100
@@ -25,6 +24,7 @@
     #undef RPL_CONF_OF_OCP
     #define RPL_CONF_OF_OCP 10
     #define SARSA_ENABLED
+    #define SARSA_LOGGING
 #endif
 
 #define RPL_CONF_WITH_MC 1

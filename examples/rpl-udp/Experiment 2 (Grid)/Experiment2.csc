@@ -301,9 +301,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 server</description>
-      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-server.c</source>
+      <source>[CONFIG_DIR]/../udp-server.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-server.z1 TARGET=z1</commands>
-      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-server.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-server.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
@@ -329,9 +329,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 client</description>
-      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-client.c</source>
+      <source>[CONFIG_DIR]/../udp-client.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-client.z1 TARGET=z1</commands>
-      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-client.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-client.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
@@ -435,16 +435,16 @@
       <skin>org.contikios.cooja.plugins.skins.TrafficVisualizerSkin</skin>
       <viewport>6.035451485399349 0.0 0.0 6.035451485399349 -113.63893429837671 30.278380918333994</viewport>
     </plugin_config>
-    <bounds x="1" y="1" height="400" width="400" z="1" />
+    <bounds x="1" y="1" height="400" width="400" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.LogListener
     <plugin_config>
-      <filter />
+      <filter>dep</filter>
       <formatted_time />
       <coloring />
     </plugin_config>
-    <bounds x="400" y="160" height="240" width="1075" z="4" />
+    <bounds x="400" y="160" height="240" width="1075" z="2" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.TimeLine
@@ -463,7 +463,7 @@
       <showLEDs />
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
-    <bounds x="0" y="645" height="166" width="1475" z="3" />
+    <bounds x="0" y="645" height="166" width="1475" z="5" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.Notes
@@ -471,10 +471,18 @@
       <notes>Enter notes here</notes>
       <decorations>true</decorations>
     </plugin_config>
-    <bounds x="400" y="0" height="160" width="1075" z="2" />
+    <bounds x="400" y="0" height="160" width="1075" z="4" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.DGRMConfigurator
-    <bounds x="414" y="37" height="297" width="400" />
+    <bounds x="4" y="394" height="297" width="400" z="3" />
+  </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.ScriptRunner
+    <plugin_config>
+      <scriptfile>[COOJA_DIR]/logging_script.js</scriptfile>
+      <active>true</active>
+    </plugin_config>
+    <bounds x="476" y="5" height="700" width="600" z="1" />
   </plugin>
 </simconf>

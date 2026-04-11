@@ -107,7 +107,7 @@
         <dest>
           org.contikios.cooja.radiomediums.DGRMDestinationRadio
           <radio>4</radio>
-          <ratio>0.5000000000000001</ratio>
+          <ratio>0.8</ratio>
           <signal>-10.0</signal>
           <lqi>105</lqi>
           <delay>0</delay>
@@ -119,7 +119,7 @@
         <dest>
           org.contikios.cooja.radiomediums.DGRMDestinationRadio
           <radio>3</radio>
-          <ratio>0.5000000000000001</ratio>
+          <ratio>0.8</ratio>
           <signal>-10.0</signal>
           <lqi>105</lqi>
           <delay>0</delay>
@@ -133,9 +133,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 Server</description>
-      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-server.c</source>
+      <source>[CONFIG_DIR]/../udp-server.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-server.z1 TARGET=z1</commands>
-      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-server.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-server.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
@@ -161,9 +161,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 Client</description>
-      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-client.c</source>
+      <source>[CONFIG_DIR]/../udp-client.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-client.z1 TARGET=z1</commands>
-      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-client.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-client.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>

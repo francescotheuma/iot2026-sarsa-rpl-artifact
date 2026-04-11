@@ -107,7 +107,7 @@
         <dest>
           org.contikios.cooja.radiomediums.DGRMDestinationRadio
           <radio>4</radio>
-          <ratio>0.5000000000000001</ratio>
+          <ratio>1.0</ratio>
           <signal>-10.0</signal>
           <lqi>105</lqi>
           <delay>0</delay>
@@ -119,7 +119,7 @@
         <dest>
           org.contikios.cooja.radiomediums.DGRMDestinationRadio
           <radio>3</radio>
-          <ratio>0.5000000000000001</ratio>
+          <ratio>1.0</ratio>
           <signal>-10.0</signal>
           <lqi>105</lqi>
           <delay>0</delay>
@@ -133,9 +133,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 Server</description>
-      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-server.c</source>
+      <source>[CONFIG_DIR]/../udp-server.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-server.z1 TARGET=z1</commands>
-      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-server.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-server.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
@@ -161,9 +161,9 @@
     <motetype>
       org.contikios.cooja.mspmote.Z1MoteType
       <description>Z1 Client</description>
-      <source>[CONTIKI_DIR]/examples/rpl-udp/udp-client.c</source>
+      <source>[CONFIG_DIR]/../udp-client.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-client.z1 TARGET=z1</commands>
-      <firmware>[CONTIKI_DIR]/examples/rpl-udp/build/z1/udp-client.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-client.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
@@ -198,7 +198,7 @@
       <mote>
         <interface_config>
           org.contikios.cooja.interfaces.Position
-          <pos x="31.091385962810254" y="34.031001381091066" />
+          <pos x="33.11694337821065" y="34.031001381091066" />
         </interface_config>
         <interface_config>
           org.contikios.cooja.mspmote.interfaces.MspMoteID
@@ -226,7 +226,7 @@
       <formatted_time />
       <coloring />
     </plugin_config>
-    <bounds x="400" y="160" height="240" width="1075" z="1" />
+    <bounds x="400" y="160" height="240" width="1075" z="4" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.TimeLine
@@ -240,7 +240,7 @@
       <showLEDs />
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
-    <bounds x="0" y="645" height="166" width="1475" z="4" />
+    <bounds x="0" y="645" height="166" width="1475" z="6" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.Notes
@@ -248,10 +248,30 @@
       <notes>Enter notes here</notes>
       <decorations>true</decorations>
     </plugin_config>
-    <bounds x="400" y="0" height="160" width="1075" z="3" />
+    <bounds x="400" y="0" height="160" width="1075" z="5" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.DGRMConfigurator
-    <bounds x="0" y="368" height="300" width="400" />
+    <bounds x="0" y="368" height="300" width="400" z="3" />
+  </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.ScriptRunner
+    <plugin_config>
+      <scriptfile>[COOJA_DIR]/logging_script.js</scriptfile>
+      <active>true</active>
+    </plugin_config>
+    <bounds x="403" y="18" height="700" width="600" z="1" />
+  </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.Visualizer
+    <plugin_config>
+      <moterelations>true</moterelations>
+      <skin>org.contikios.cooja.plugins.skins.IDVisualizerSkin</skin>
+      <skin>org.contikios.cooja.plugins.skins.GridVisualizerSkin</skin>
+      <skin>org.contikios.cooja.plugins.skins.DGRMVisualizerSkin</skin>
+      <skin>org.contikios.cooja.plugins.skins.TrafficVisualizerSkin</skin>
+      <viewport>11.110406846812788 0.0 0.0 11.110406846812788 -175.54690956136074 -47.82554347564237</viewport>
+    </plugin_config>
+    <bounds x="1" y="1" height="400" width="400" />
   </plugin>
 </simconf>
