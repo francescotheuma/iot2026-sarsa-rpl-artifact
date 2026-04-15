@@ -6,6 +6,8 @@ Usage:
     python3 analyse_sarsa.py                        # uses tools/cooja/cooja_sarsa.log
     python3 analyse_sarsa.py path/to/cooja.log      # analyse a specific log
 
+Set `COMPARISON_TARGET` at the top of the file to either 'MRHOF' or 'FEDERATED' to change the comparison target.
+
 Answers three questions:
   A) Is the arithmetic correct?
        - err == tgt - curQ  (every update)
@@ -57,6 +59,10 @@ SARSA_HYSTERESIS = 8   # from rpl-sarsa.c
 SCRIPT_DIR    = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_LOG   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_sarsa.log")
 DEFAULT_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
+DEFAULT_FED   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_fed.log")
+
+# Switch the comparison target here: 'MRHOF' or 'FEDERATED'
+COMPARISON_TARGET = 'FEDERATED'
 
 # ─── Parsers ─────────────────────────────────────────────────────────────────
 
@@ -598,9 +604,9 @@ def plot_parent_switches(df_eval, df_batt, outdir):
     _save(fig, os.path.join(outdir, 'analysis_parent_switch.png'))
 
 
-def plot_battery_comparison(df_sarsa, df_mrhof, outdir):
-    """Side-by-side battery % over time for SARSA vs MRHOF, with final TX/CPU annotation."""
-    if df_sarsa.empty or df_mrhof.empty:
+def plot_battery_comparison(df_sarsa, df_compare, compare_label, outdir):
+    """Side-by-side battery % over time for SARSA vs the selected comparison target."""
+    if df_sarsa.empty or df_compare.empty:
         print("  Skipping battery comparison — missing data for one run.")
         return
 
@@ -632,7 +638,7 @@ def plot_battery_comparison(df_sarsa, df_mrhof, outdir):
                 va='top', ha='right', bbox=props)
 
     _panel(df_sarsa, axes[0], 'SARSA')
-    _panel(df_mrhof, axes[1], 'MRHOF')
+    _panel(df_compare, axes[1], compare_label)
     axes[0].set_ylabel('Battery %', fontweight='bold')
     plt.tight_layout()
     _save(fig, os.path.join(outdir, 'analysis_battery_comparison.png'))
@@ -673,26 +679,27 @@ def plot_ticks_over_time(df_batt, label, outdir):
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    log_path   = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_LOG
-    mrhof_path = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_MRHOF
-    out_dir    = os.path.join(os.path.dirname(os.path.abspath(log_path)) if len(sys.argv) > 1 else SCRIPT_DIR, "plots")
+    log_path      = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_LOG
+    compare_path  = sys.argv[2] if len(sys.argv) > 2 else (DEFAULT_MRHOF if COMPARISON_TARGET == 'MRHOF' else DEFAULT_FED)
+    compare_label = 'MRHOF' if COMPARISON_TARGET == 'MRHOF' else 'FEDERATED'
+    out_dir       = os.path.join(os.path.dirname(os.path.abspath(log_path)) if len(sys.argv) > 1 else SCRIPT_DIR, "plots")
     os.makedirs(out_dir, exist_ok=True)
 
     if not os.path.exists(log_path):
         print(f"Error: log file not found: {log_path}")
         sys.exit(1)
 
-    print(f"SARSA log : {log_path}")
-    print(f"MRHOF log : {mrhof_path}")
-    print(f"Out       : {out_dir}\n")
+    print(f"SARSA log    : {log_path}")
+    print(f"{compare_label} log: {compare_path}")
+    print(f"Out          : {out_dir}\n")
 
     df_math, df_wght, df_eval, df_batt = parse_log(log_path)
 
-    df_mrhof_batt = pd.DataFrame()
-    if os.path.exists(mrhof_path):
-        _, _, _, df_mrhof_batt = parse_log(mrhof_path)
+    df_compare_batt = pd.DataFrame()
+    if os.path.exists(compare_path):
+        _, _, _, df_compare_batt = parse_log(compare_path)
     else:
-        print(f"  [WARN] MRHOF log not found — battery comparison and MRHOF ticks skipped.")
+        print(f"  [WARN] {compare_label} log not found — battery comparison and {compare_label} ticks skipped.")
 
     print("=== DATA SUMMARY ===")
     print(f"  SARSA-MATH  updates : {len(df_math)}")
@@ -731,9 +738,9 @@ if __name__ == '__main__':
         print(f"  Arithmetic : FAIL  ({fail_err} err mismatch, {fail_wgt} weight mismatch)")
 
     # ── A/B battery summary ───────────────────────────────────────────────────
-    if not df_batt.empty and not df_mrhof_batt.empty:
-        print("\n=== A/B BATTERY SUMMARY ===")
-        for label, bdf in [('SARSA', df_batt), ('MRHOF', df_mrhof_batt)]:
+    if not df_batt.empty and not df_compare_batt.empty:
+        print(f"\n=== SARSA vs {compare_label} BATTERY SUMMARY ===")
+        for label, bdf in [('SARSA', df_batt), (compare_label, df_compare_batt)]:
             last = bdf.sort_values('ts').groupby('node').last().reset_index()
             parts = [f"Node {int(r['node'])}: {int(r['batt'])}%" for _, r in last.iterrows()]
             print(f"  {label}: {' | '.join(parts)}")
@@ -745,9 +752,9 @@ if __name__ == '__main__':
     plot_reward_quality(df_math, out_dir)
     plot_q_vs_energy(df_eval, df_batt, out_dir)
     plot_parent_switches(df_eval, df_batt, out_dir)
-    plot_battery_comparison(df_batt, df_mrhof_batt, out_dir)
+    plot_battery_comparison(df_batt, df_compare_batt, compare_label, out_dir)
     plot_ticks_over_time(df_batt, 'SARSA', out_dir)
-    if not df_mrhof_batt.empty:
-        plot_ticks_over_time(df_mrhof_batt, 'MRHOF', out_dir)
+    if not df_compare_batt.empty:
+        plot_ticks_over_time(df_compare_batt, compare_label, out_dir)
 
     print("\nDone.")
