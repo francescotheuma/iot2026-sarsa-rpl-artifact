@@ -61,7 +61,7 @@ DEFAULT_LOG   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_sarsa.log")
 DEFAULT_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 DEFAULT_FED   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_fed.log")
 
-# Switch the comparison target here: 'MRHOF' or 'FEDERATED'
+# Switch the comparison target: 'MRHOF' or 'FEDERATED'
 COMPARISON_TARGET = 'FEDERATED'
 
 # ─── Parsers ─────────────────────────────────────────────────────────────────
@@ -641,7 +641,13 @@ def plot_battery_comparison(df_sarsa, df_compare, compare_label, outdir):
     _panel(df_compare, axes[1], compare_label)
     axes[0].set_ylabel('Battery %', fontweight='bold')
     plt.tight_layout()
-    _save(fig, os.path.join(outdir, 'analysis_battery_comparison.png'))
+    if COMPARISON_TARGET == 'FEDERATED' :
+        _save(fig, os.path.join(outdir, 'battery_comparison_federated.png'))
+    elif COMPARISON_TARGET == 'MRHOF' :
+        _save(fig, os.path.join(outdir, 'battery_comparison_mrhof.png'))
+
+
+
 
 
 def plot_ticks_over_time(df_batt, label, outdir):
