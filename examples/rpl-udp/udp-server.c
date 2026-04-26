@@ -49,9 +49,11 @@
 #ifdef FEDERATION
   /* Federated learning payload structs — must match udp-client.c */
   typedef struct {
+    uint8_t magic;
     uint32_t seq;
     int32_t  w_lq;
     int32_t  w_energy;
+    char app_data[32];
   } __attribute__((packed)) udp_fed_payload_t;
 
   typedef struct {
@@ -90,7 +92,8 @@ udp_rx_callback(struct simple_udp_connection *c,
          uint16_t datalen)
 {
   #ifdef FEDERATION
-    if(datalen == sizeof(udp_fed_payload_t)) {
+    if(datalen == sizeof(udp_fed_payload_t) && ((const udp_fed_payload_t *)data)->magic == FED_MAGIC) {
+      // Federation packet received
       const udp_fed_payload_t *pl = (const udp_fed_payload_t *)data;
 
       /* Find existing entry for this sender, or insert a new one */
@@ -141,10 +144,15 @@ udp_rx_callback(struct simple_udp_connection *c,
     simple_udp_sendto(&udp_conn, &reply, sizeof(reply), sender_addr);
   #endif /* WITH_SERVER_REPLY */
   } else {
-    bool _cpu_on = energest_current_mode[ENERGEST_TYPE_CPU];
-    if(_cpu_on) ENERGEST_OFF(ENERGEST_TYPE_CPU);
-    LOG_WARN("FL: unexpected payload len %u, ignoring\n", (unsigned)datalen);
-    if(_cpu_on) ENERGEST_ON(ENERGEST_TYPE_CPU);
+    // Non-federation packet received
+    LOG_INFO("Received request '%.*s' from ", datalen, (char *) data);
+    LOG_INFO_6ADDR(sender_addr);
+    LOG_INFO_("\n");
+
+    #ifdef WITH_SERVER_REPLY
+      LOG_INFO("Sending response.\n");
+      simple_udp_sendto(&udp_conn, data, datalen, sender_addr);
+    #endif
   }
   #else
     LOG_INFO("Received request '%.*s' from ", datalen, (char *) data);

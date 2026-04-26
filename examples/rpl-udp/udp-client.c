@@ -19,11 +19,18 @@
 #define SEND_INTERVAL		  (10 * CLOCK_SECOND)
 
 #ifdef FEDERATION
+  #define FED_MAGIC 0xFA
+  #define FED_THRESHOLD 10
+#endif
+
+#ifdef FEDERATION
   /* Federated learning payload structs — must match udp-server.c */
   typedef struct {
+    uint8_t magic;
     uint32_t seq;
     int32_t  w_lq;
     int32_t  w_energy;
+    char app_data[32];
   } __attribute__((packed)) udp_fed_payload_t;
 
   typedef struct {
@@ -85,6 +92,9 @@ PROCESS_THREAD(udp_client_process, ev, data)
   static uint32_t tx_count;
   static uint32_t missed_tx_count;
 
+  static int32_t last_sent_w_lq = 0;
+  static int32_t last_sent_w_energy = 0;
+
   PROCESS_BEGIN();
 
   battery_init(); // To log battery for graph comparisons between OFs
@@ -111,10 +121,38 @@ PROCESS_THREAD(udp_client_process, ev, data)
       LOG_INFO_6ADDR(&dest_ipaddr);
       LOG_INFO_("\n");
       #ifdef FEDERATION
-        udp_fed_payload_t payload;
-        payload.seq = tx_count;
-        sarsa_get_weights(&payload.w_lq, &payload.w_energy);
-        simple_udp_sendto(&udp_conn, &payload, sizeof(payload), &dest_ipaddr);
+        int32_t current_w_lq, current_w_energy;
+        sarsa_get_weights(&current_w_lq, &current_w_energy);
+
+        // Calculate absolute difference
+        int32_t diff_lq = current_w_lq - last_sent_w_lq;
+        if(diff_lq < 0) diff_lq = -diff_lq;
+
+        int32_t diff_energy = current_w_energy - last_sent_w_energy;
+        if(diff_energy < 0) diff_energy = -diff_energy;
+
+        // Only transmit if deviation exceeds theshold
+        if(diff_lq > FED_THRESHOLD || diff_energy > FED_THRESHOLD) {
+          // Send app data + FL weights
+          udp_fed_payload_t payload;
+          payload.magic = FED_MAGIC;
+          payload.seq = tx_count;
+          payload.w_lq = current_w_lq;
+          payload.w_energy = current_w_energy;
+
+          snprintf(payload.app_data, sizeof(payload.app_data), "hello %" PRIu32 "", tx_count);
+          simple_udp_sendto(&udp_conn, &payload, sizeof(payload), &dest_ipaddr);
+
+          // Update Memory
+          last_sent_w_lq = current_w_lq;
+          last_sent_w_energy = current_w_energy;
+        }
+        else{
+          static char str[32];
+          snprintf(str, sizeof(str), "hello %" PRIu32 "", tx_count);
+          simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
+        }
+
       #else
         static char str[32];
         snprintf(str, sizeof(str), "hello %" PRIu32 "", tx_count);
