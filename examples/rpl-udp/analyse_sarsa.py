@@ -46,6 +46,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.tab20.colors)
+
 # ─── Constants — must match project-conf.h ───────────────────────────────────
 
 ALPHA       = 10
@@ -62,7 +64,7 @@ DEFAULT_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 DEFAULT_FED   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_fed.log")
 
 # Switch the comparison target: 'MRHOF' or 'FEDERATED'
-COMPARISON_TARGET = 'FEDERATED'
+COMPARISON_TARGET = 'MRHOF'
 
 # ─── Parsers ─────────────────────────────────────────────────────────────────
 
@@ -367,7 +369,7 @@ def analyse_energy_responsiveness(df_eval, df_batt):
 
 # ─── Plots ───────────────────────────────────────────────────────────────────
 
-COLORS = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#F44336']
+COLORS = plt.cm.tab20.colors
 
 
 def _save(fig, path):
@@ -522,7 +524,7 @@ def plot_q_vs_energy(df_eval, df_batt, outdir):
 
     for i, node in enumerate(sorted(df['node'].unique())):
         nd = df[df['node'] == node]
-        ax.scatter(nd['dBatt'], nd['dQ'], c=COLORS[i % len(COLORS)],
+        ax.scatter(nd['dBatt'], nd['dQ'], color=COLORS[i % len(COLORS)],
                    s=25, alpha=0.6, label=f'Node {node}')
 
     # Shade the "correct" quadrants (I and III)
