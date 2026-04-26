@@ -20,7 +20,7 @@
 
 #ifdef FEDERATION
   #define FED_MAGIC 0xFA
-  #define FED_THRESHOLD 10
+  #define FED_THRESHOLD 0
 #endif
 
 #ifdef FEDERATION
