@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <battery.h>
 #include "energest.h"
+#include <stddef.h> //for federation fairness with other protocols
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -143,7 +144,10 @@ PROCESS_THREAD(udp_client_process, ev, data)
           payload.w_energy = current_w_energy;
 
           snprintf(payload.app_data, sizeof(payload.app_data), "hello %" PRIu32 "", tx_count);
-          simple_udp_sendto(&udp_conn, &payload, sizeof(payload), &dest_ipaddr);
+
+          // offset magic
+          size_t exact_size = offsetof(udp_fed_payload_t, app_data) + strlen(payload.app_data) + 1;
+          simple_udp_sendto(&udp_conn, &payload, exact_size, &dest_ipaddr);
 
           // Update Memory
           last_sent_w_lq = current_w_lq;
