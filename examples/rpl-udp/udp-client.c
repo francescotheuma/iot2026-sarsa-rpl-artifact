@@ -92,8 +92,10 @@ PROCESS_THREAD(udp_client_process, ev, data)
   static uint32_t tx_count;
   static uint32_t missed_tx_count;
 
-  static int32_t last_sent_w_lq = 0;
-  static int32_t last_sent_w_energy = 0;
+  #ifdef FEDERATION
+    static int32_t last_sent_w_lq = 0;
+    static int32_t last_sent_w_energy = 0;
+  #endif
 
   PROCESS_BEGIN();
 

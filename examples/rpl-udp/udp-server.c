@@ -47,6 +47,9 @@
 #define UDP_SERVER_PORT	5678
 
 #ifdef FEDERATION
+
+  #define FED_MAGIC 0xFA
+  
   /* Federated learning payload structs — must match udp-client.c */
   typedef struct {
     uint8_t magic;
