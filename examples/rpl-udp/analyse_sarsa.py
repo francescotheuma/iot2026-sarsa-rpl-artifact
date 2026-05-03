@@ -754,15 +754,15 @@ if __name__ == '__main__':
             print(f"  {label}: {' | '.join(parts)}")
 
     print("\n=== PLOTS ===")
-    plot_weights(df_wght, out_dir)
-    plot_td_error(df_math, out_dir)
-    plot_qvalues(df_eval, out_dir)
-    plot_reward_quality(df_math, out_dir)
-    plot_q_vs_energy(df_eval, df_batt, out_dir)
-    plot_parent_switches(df_eval, df_batt, out_dir)
+    #plot_weights(df_wght, out_dir)
+    #plot_td_error(df_math, out_dir)
+    #plot_qvalues(df_eval, out_dir)
+    #plot_reward_quality(df_math, out_dir)
+    #plot_q_vs_energy(df_eval, df_batt, out_dir)
+    #plot_parent_switches(df_eval, df_batt, out_dir)
     plot_battery_comparison(df_batt, df_compare_batt, compare_label, out_dir)
-    plot_ticks_over_time(df_batt, 'SARSA', out_dir)
-    if not df_compare_batt.empty:
-        plot_ticks_over_time(df_compare_batt, compare_label, out_dir)
+    #plot_ticks_over_time(df_batt, 'SARSA', out_dir)
+    #if not df_compare_batt.empty:
+        #plot_ticks_over_time(df_compare_batt, compare_label, out_dir)
 
     print("\nDone.")

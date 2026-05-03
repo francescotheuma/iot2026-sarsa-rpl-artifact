@@ -31,7 +31,7 @@
 #define MAX_LINK_METRIC     512   
 #define MAX_PATH_COST       32768 
 #define MAX_WEIGHT 1000
-#define MIN_WEIGHT -1000
+#define MIN_WEIGHT 0
 
 #ifdef FL_CONF_BLEND
   #define FL_BLEND FL_CONF_BLEND
