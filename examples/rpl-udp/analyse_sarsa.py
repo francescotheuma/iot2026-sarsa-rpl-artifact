@@ -721,10 +721,6 @@ if __name__ == '__main__':
         print("\nNo SARSA learning logs found — was SARSA_LOGGING defined?")
         sys.exit(0)
 
-    print(f"\n=== CONSTANTS ===")
-    print(f"  ALPHA={ALPHA}  GAMMA={GAMMA}  "
-          f"WEIGHT_CLIP=[{MIN_WEIGHT},{MAX_WEIGHT}]  "
-          f"HYSTERESIS={SARSA_HYSTERESIS}")
 
     print("\n=== A) ARITHMETIC CORRECTNESS ===")
     fail_err, fail_wgt = verify_arithmetic(df_math, df_wght)
