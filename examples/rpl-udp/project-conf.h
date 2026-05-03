@@ -6,17 +6,17 @@
 /* =====================*/
 
 //SARSA
-//#define SARSA
+#define SARSA
 //#define FEDERATION
 
-#define FL_CONF_BLEND 5
+#define FL_CONF_BLEND 10
 
-#define SARSA_CONF_ALPHA 30
+#define SARSA_CONF_ALPHA 20
 #define SARSA_CONF_GAMMA 80
 #define SARSA_CONF_LEARNING_BATCH_SIZE 7
 
 //Battery settings
-#define CONF_DRAIN_MAGNITUDE 100
+#define CONF_DRAIN_MAGNITUDE 50
 #define CONF_COST_RX 0
 #define CONF_COST_TX 60
 #define CONF_COST_CPU 20

@@ -65,6 +65,7 @@ DEFAULT_FED   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_fed.log")
 
 # Switch the comparison target: 'MRHOF' or 'FEDERATED'
 COMPARISON_TARGET = 'FEDERATED'
+#COMPARISON_TARGET = 'MRHOF'
 
 # ─── Parsers ─────────────────────────────────────────────────────────────────
 
