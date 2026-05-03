@@ -35,6 +35,7 @@
   } __attribute__((packed)) udp_fed_payload_t;
 
   typedef struct {
+    uint8_t magic;
     int32_t  agg_w_lq;
     int32_t  agg_w_energy;
     uint8_t  num_nodes;
@@ -68,15 +69,19 @@ udp_rx_callback(struct simple_udp_connection *c,
     if(datalen == sizeof(udp_fed_reply_t)) {
       const udp_fed_reply_t *reply = (const udp_fed_reply_t *)data;
       
-      sarsa_apply_federated_weights(reply->agg_w_lq, reply->agg_w_energy);
-      #ifdef SARSA_LOGGING
-          ENERGEST_OFF(ENERGEST_TYPE_CPU);
-          LOG_INFO_("\n");
-          LOG_INFO("FL-UPDATE | agg_lq: %ld | agg_eng: %ld | n=%u | from ",
-                  (long)reply->agg_w_lq, (long)reply->agg_w_energy, (unsigned)reply->num_nodes);
-          LOG_INFO_6ADDR(sender_addr);
-          ENERGEST_ON(ENERGEST_TYPE_CPU);
-      #endif /* SARSA_LOGGING */
+      if(reply->magic == FED_MAGIC) {
+        sarsa_apply_federated_weights(reply->agg_w_lq, reply->agg_w_energy);
+        #ifdef SARSA_LOGGING
+            ENERGEST_OFF(ENERGEST_TYPE_CPU);
+            LOG_INFO_("\n");
+            LOG_INFO("FL-UPDATE | agg_lq: %ld | agg_eng: %ld | n=%u | from ",
+                    (long)reply->agg_w_lq, (long)reply->agg_w_energy, (unsigned)reply->num_nodes);
+            LOG_INFO_6ADDR(sender_addr);
+            ENERGEST_ON(ENERGEST_TYPE_CPU);
+        #endif /* SARSA_LOGGING */
+
+      }
+      
     }
   #endif
   #if LLSEC802154_CONF_ENABLED

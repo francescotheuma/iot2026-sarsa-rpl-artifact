@@ -60,6 +60,7 @@
   } __attribute__((packed)) udp_fed_payload_t;
 
   typedef struct {
+    uint8_t magic;
     int32_t  agg_w_lq;
     int32_t  agg_w_energy;
     uint8_t  num_nodes;
@@ -141,6 +142,7 @@ udp_rx_callback(struct simple_udp_connection *c,
   #if WITH_SERVER_REPLY
     LOG_INFO("Sending response.\n");
     udp_fed_reply_t reply;
+    reply.magic = FED_MAGIC;
     reply.agg_w_lq    = avg_w_lq;
     reply.agg_w_energy = avg_w_energy;
     reply.num_nodes   = fl_node_count;
