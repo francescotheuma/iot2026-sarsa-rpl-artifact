@@ -7,11 +7,11 @@
 
 //SARSA
 #define SARSA
-//#define FEDERATION
+#define FEDERATION
 
 #define FL_CONF_BLEND 5
 
-#define SARSA_CONF_ALPHA 10
+#define SARSA_CONF_ALPHA 30
 #define SARSA_CONF_GAMMA 80
 #define SARSA_CONF_LEARNING_BATCH_SIZE 7
 

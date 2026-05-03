@@ -21,7 +21,7 @@
 
 #ifdef FEDERATION
   #define FED_MAGIC 0xFA
-  #define FED_THRESHOLD 0
+  #define FED_THRESHOLD 10
 #endif
 
 #ifdef FEDERATION
@@ -99,8 +99,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
   static uint32_t missed_tx_count;
 
   #ifdef FEDERATION
-    static int32_t last_sent_w_lq = 0;
-    static int32_t last_sent_w_energy = 0;
+    static int32_t last_sent_w_lq = 50;
+    static int32_t last_sent_w_energy = 50;
   #endif
 
   PROCESS_BEGIN();

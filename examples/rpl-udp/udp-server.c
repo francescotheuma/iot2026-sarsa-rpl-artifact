@@ -96,7 +96,7 @@ udp_rx_callback(struct simple_udp_connection *c,
          uint16_t datalen)
 {
   #ifdef FEDERATION
-    if(datalen == sizeof(udp_fed_payload_t) && ((const udp_fed_payload_t *)data)->magic == FED_MAGIC) {
+    if(((const udp_fed_payload_t *)data)->magic == FED_MAGIC) {
       // Federation packet received
       const udp_fed_payload_t *pl = (const udp_fed_payload_t *)data;
 
