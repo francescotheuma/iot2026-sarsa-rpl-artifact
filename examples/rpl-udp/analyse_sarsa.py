@@ -64,8 +64,8 @@ DEFAULT_MRHOF = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_mrhof.log")
 DEFAULT_FED   = os.path.join(SCRIPT_DIR, "../../tools/cooja/cooja_fed.log")
 
 # Switch the comparison target: 'MRHOF' or 'FEDERATED'
-COMPARISON_TARGET = 'FEDERATED'
-#COMPARISON_TARGET = 'MRHOF'
+#COMPARISON_TARGET = 'FEDERATED'
+COMPARISON_TARGET = 'MRHOF'
 
 # ─── Parsers ─────────────────────────────────────────────────────────────────
 
@@ -618,6 +618,7 @@ def plot_battery_comparison(df_sarsa, df_compare, compare_label, outdir):
     def _panel(df, ax, title):
         ax.set_title(title, fontsize=13, fontweight='bold')
         summary = "Final ticks:\n"
+        death_times = []
         for i, node in enumerate(sorted(df['node'].unique())):
             if node == 1:
                 continue
@@ -633,6 +634,27 @@ def plot_battery_comparison(df_sarsa, df_compare, compare_label, outdir):
             ax.annotate(f'{final_batt}%', xy=(final_t, final_batt),
                         xytext=(4, 0), textcoords='offset points',
                         color=line.get_color(), fontweight='bold', va='center')
+            
+            # Find death time when battery hits 0%
+            death_rows = nd[nd['batt'] <= 0]
+            if not death_rows.empty:
+                death_time = death_rows.iloc[0]['ts'] / 60_000_000
+                death_times.append((node, death_time, line.get_color()))
+                # Mark the death point with an X
+                ax.plot(death_time, 0, marker='X', markersize=10, 
+                       color=line.get_color(), markeredgecolor='black', markeredgewidth=1.5, zorder=5)
+        
+        # Add death time annotations with staggered positions to avoid overlap
+        for idx, (node, death_time, color) in enumerate(sorted(death_times, key=lambda x: x[1])):
+            y_offset = -50 - (idx * 35)  # Stagger annotations vertically, starting lower
+            ax.annotate(f'{death_time:.1f} min',
+                       xy=(death_time, 0), xytext=(0, y_offset),
+                       textcoords='offset points', fontsize=8,
+                       color=color, fontweight='bold',
+                       bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor=color),
+                       ha='center', va='top',
+                       arrowprops=dict(arrowstyle='->', color=color, lw=1))
+        
         ax.set_xlabel('Time (mins)', fontweight='bold')
         ax.legend(loc='lower left', framealpha=0.8)
         ax.grid(True, linestyle='--', alpha=0.4)
