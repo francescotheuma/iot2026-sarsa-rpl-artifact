@@ -21,7 +21,11 @@
 
 #ifdef FEDERATION
   #define FED_MAGIC 0xFA
-  #define FED_THRESHOLD 10
+  #ifdef FED_CONF_THRESHOLD
+    #define FED_THRESHOLD FED_CONF_THRESHOLD
+  #else
+    #define FED_THRESHOLD 10 
+  #endif
 #endif
 
 #ifdef FEDERATION
