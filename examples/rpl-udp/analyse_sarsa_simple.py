@@ -14,7 +14,7 @@ OUTPUT_DIR = os.path.join(SCRIPT_DIR, "plots")
 # ==============
 # CONFIGURATION 
 # ==============
-CHOICE = 'MRHOF'
+CHOICE = 'FED'
 
 if(CHOICE == 'MRHOF'):
     LOG_FILE_1 = MRHOF_LOG
@@ -24,7 +24,7 @@ elif(CHOICE == 'SARSA'):
     LABEL_1    = 'SARSA'
 elif(CHOICE == 'FED'):
     LOG_FILE_1 = FED_LOG
-    LABEL_1    = 'FEDERATED SARSA'
+    LABEL_1    = 'Federated SARSA'
 
 # Set ENABLE_COMPARISON to True to plot two logs side-by-side
 ENABLE_COMPARISON = False
@@ -55,7 +55,7 @@ def parse_battery_data(filename):
     return pd.DataFrame(data)
 
 def add_custom_elements(ax, df):
-    """Adds death times, end-of-run battery, and the TX/CPU legend."""
+    """Adds staggered death times, end-of-run battery, and the TX/CPU legend."""
     
     # 1. Colors & Nodes setup
     prop_cycle = plt.rcParams['axes.prop_cycle']
@@ -63,21 +63,49 @@ def add_custom_elements(ax, df):
     all_nodes = sorted(df['node'].unique())
     node_to_color = {node_id: colors[i % len(colors)] for i, node_id in enumerate(all_nodes)}
 
-    # 2. Death Time Labels (Only for nodes that hit 0)
+    # 2. Death Time Labels (Staggered to prevent overlap)
     dead_nodes = df[df['batt'] == 0]
     if not dead_nodes.empty:
+        # Get the first timestamp each node hit 0
         first_deaths = dead_nodes.sort_values('ts').groupby('node').first().reset_index()
-        for _, row in first_deaths.iterrows():
+        # Sort by timestamp so the boxes stack in order of death
+        first_deaths = first_deaths.sort_values('ts')
+        
+        for i, row in first_deaths.iterrows():
             mins = row['ts'] / 60000000
-            color = node_to_color[row['node']]
-            ax.text(mins, -3, f'{mins:.2f}m', color='white', fontweight='bold',
-                    ha='center', va='top', fontsize=8,
-                    bbox=dict(facecolor=color, alpha=0.9, edgecolor='none', boxstyle='round,pad=0.2'))
+            node_id = int(row['node'])
+            color = node_to_color[node_id]
+            
+            # STAGGER LOGIC: 
+            # The first node to die is at height -4, the second at -10, third at -16, etc.
+            y_offset = -4 - (i * 6) 
+
+            ax.annotate(
+                f'Node {node_id}: {mins:.2f}m',
+                xy=(mins, 0),             # Point the arrow to the exact death time (0% battery)
+                xytext=(mins, y_offset),  # Place the text box at the unique staggered height
+                color='white', 
+                fontweight='bold',
+                ha='center', 
+                va='top', 
+                fontsize=8,
+                bbox=dict(
+                    facecolor=color, 
+                    alpha=0.9, 
+                    edgecolor='none', 
+                    boxstyle='round,pad=0.3'
+                ),
+                arrowprops=dict(
+                    arrowstyle='->', 
+                    color=color, 
+                    lw=1, 
+                    shrinkA=0, 
+                    shrinkB=0
+                )
+            )
 
     # 3. End-of-Line Battery Labels (For all nodes)
     last_samples = df.sort_values('ts').groupby('node').last().reset_index()
-    
-    # We will also use these last samples to build the TX/CPU legend
     tx_cpu_handles = []
     
     for _, row in last_samples.iterrows():
@@ -86,14 +114,12 @@ def add_custom_elements(ax, df):
         node_id = int(row['node'])
         color = node_to_color[node_id]
         
-        # Battery % label at end of line
+        # Battery % label at the end of the depletion line
         ax.text(mins + 0.2, batt, f'{batt}%', color=color, fontweight='bold',
                 va='center', ha='left', fontsize=9)
         
-        # Create a proxy for the TX/CPU legend
-        # We use a custom label string
+        # Create a legend proxy for TX/CPU stats
         info_label = f"N{node_id}: TX={row['tx']:,} | CPU={row['cpu']:,}"
-        # Dummy line for legend entry
         proxy = plt.Line2D([0], [0], color=color, lw=2, label=info_label)
         tx_cpu_handles.append(proxy)
 
