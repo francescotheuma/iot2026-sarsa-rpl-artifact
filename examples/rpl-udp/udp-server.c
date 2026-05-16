@@ -68,7 +68,7 @@
 
   /* FL aggregation state: per-node snapshot average (most recent weights per sender) */
   #ifndef FL_MAX_NODES
-  #define FL_MAX_NODES 10
+  #define FL_MAX_NODES 15
   #endif
 
   typedef struct {

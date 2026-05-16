@@ -52,6 +52,7 @@
 
 static struct simple_udp_connection udp_conn;
 static uint32_t rx_count = 0;
+static int32_t federation_counter = 0;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client");
@@ -102,10 +103,6 @@ PROCESS_THREAD(udp_client_process, ev, data)
   static uint32_t tx_count;
   static uint32_t missed_tx_count;
 
-  #ifdef FEDERATION
-    static int32_t last_sent_w_lq = 50;
-    static int32_t last_sent_w_energy = 50;
-  #endif
 
   PROCESS_BEGIN();
 
@@ -136,15 +133,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
         int32_t current_w_lq, current_w_energy;
         sarsa_get_weights(&current_w_lq, &current_w_energy);
 
-        // Calculate absolute difference
-        int32_t diff_lq = current_w_lq - last_sent_w_lq;
-        if(diff_lq < 0) diff_lq = -diff_lq;
-
-        int32_t diff_energy = current_w_energy - last_sent_w_energy;
-        if(diff_energy < 0) diff_energy = -diff_energy;
-
         // Only transmit if deviation exceeds theshold
-        if(diff_lq > FED_THRESHOLD || diff_energy > FED_THRESHOLD) {
+        if(federation_counter >= FED_THRESHOLD) {
           // Send app data + FL weights
           udp_fed_payload_t payload;
           payload.magic = FED_MAGIC;
@@ -158,14 +148,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
           size_t exact_size = offsetof(udp_fed_payload_t, app_data) + strlen(payload.app_data) + 1;
           simple_udp_sendto(&udp_conn, &payload, exact_size, &dest_ipaddr);
 
-          // Update Memory
-          last_sent_w_lq = current_w_lq;
-          last_sent_w_energy = current_w_energy;
+          federation_counter = 0;
         }
         else{
           static char str[32];
           snprintf(str, sizeof(str), "hello %" PRIu32 "", tx_count);
           simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
+          federation_counter++;
         }
 
       #else
