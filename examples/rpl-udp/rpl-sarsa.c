@@ -70,7 +70,6 @@ NBR_TABLE(sarsa_nbr_t, sarsa_neighbors); // macro that allocates array of memory
 static void
 reset(void)
 {
-
   #ifdef SARSA_LOGGING
     bool _cpu_on = energest_current_mode[ENERGEST_TYPE_CPU];
     if(_cpu_on) ENERGEST_OFF(ENERGEST_TYPE_CPU);
@@ -226,7 +225,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   if(lladdr == NULL || linkaddr_cmp(lladdr, &linkaddr_null)) return;
 
-  /* 1. Safely convert MAC address to RPL Neighbor */
+  /* 1. Safely convert MAC address to RPL Neighbour */
   uip_ds6_nbr_t *ds6_nbr = uip_ds6_nbr_ll_lookup((const uip_lladdr_t *)lladdr);
   if(ds6_nbr == NULL) return;
   rpl_nbr_t *nbr = rpl_neighbor_get_from_ipaddr(&ds6_nbr->ipaddr);
@@ -276,7 +275,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
     target = reward + ((GAMMA * future_value) / 100); // div 100 for floating point math reasons
   }
 
-  /* 6. Calculate True TD Error */
+  /* 6. Calculate TD Error */
   int32_t td_error = target - current_q; 
 
   /* 7. Update Global Policy Weights */
@@ -327,7 +326,7 @@ best_parent(rpl_nbr_t *p1, rpl_nbr_t *p2)
 
   rpl_nbr_t *best;
 
-  // +5 is a small bias to prevent Hysterisis
+  // Utilise Hysteresis to prevent parent flapping
   if(p1 == curr_instance.dag.preferred_parent) {
       best = (q1 + SARSA_HYSTERESIS >= q2) ? p1 : p2; 
   }

@@ -5,7 +5,7 @@
 /* MODIFIABLE DIRECTIVES*/
 /* =====================*/
 
-//SARSA
+//SARSA and Federation settings
 #define SARSA
 #define FEDERATION
 
@@ -16,6 +16,7 @@
 #define SARSA_CONF_GAMMA 80
 #define SARSA_CONF_LEARNING_BATCH_SIZE 7
 #define SARSA_CONF_HYSTERESIS 8
+
 
 //Battery settings
 #define CONF_DRAIN_MAGNITUDE 100

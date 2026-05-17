@@ -29,7 +29,7 @@
 #endif
 
 #ifdef FEDERATION
-  /* Federated learning payload structs — must match udp-server.c */
+  /* Federated learning structs */
   typedef struct {
     uint8_t magic;
     uint32_t seq;
@@ -83,7 +83,7 @@ udp_rx_callback(struct simple_udp_connection *c,
                     (long)reply->agg_w_lq, (long)reply->agg_w_energy, (unsigned)reply->num_nodes);
             LOG_INFO_6ADDR(sender_addr);
             ENERGEST_ON(ENERGEST_TYPE_CPU);
-        #endif /* SARSA_LOGGING */
+        #endif
 
       }
       
@@ -103,10 +103,9 @@ PROCESS_THREAD(udp_client_process, ev, data)
   static uint32_t tx_count;
   static uint32_t missed_tx_count;
 
-
   PROCESS_BEGIN();
 
-  battery_init(); // To log battery for graph comparisons between OFs
+  battery_init(); // For battery logging
 
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
@@ -133,7 +132,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
         int32_t current_w_lq, current_w_energy;
         sarsa_get_weights(&current_w_lq, &current_w_energy);
 
-        // Only transmit if deviation exceeds theshold
+        // Only transmit weights if threshold of packets reached
         if(federation_counter >= FED_THRESHOLD) {
           // Send app data + FL weights
           udp_fed_payload_t payload;
@@ -144,7 +143,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
           snprintf(payload.app_data, sizeof(payload.app_data), "hello %" PRIu32 "", tx_count);
 
-          // offset magic
+          // offset payload
           size_t exact_size = offsetof(udp_fed_payload_t, app_data) + strlen(payload.app_data) + 1;
           simple_udp_sendto(&udp_conn, &payload, exact_size, &dest_ipaddr);
 

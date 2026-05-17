@@ -50,7 +50,7 @@
 
   #define FED_MAGIC 0xFA
   
-  /* Federated learning payload structs — must match udp-client.c */
+  /* Federated learning structs*/
   typedef struct {
     uint8_t magic;
     uint32_t seq;
@@ -66,7 +66,7 @@
     uint8_t  num_nodes;
   } __attribute__((packed)) udp_fed_reply_t;
 
-  /* FL aggregation state: per-node snapshot average (most recent weights per sender) */
+  /* To be used by FL averaging*/
   #ifndef FL_MAX_NODES
   #define FL_MAX_NODES 15
   #endif
@@ -138,7 +138,7 @@ udp_rx_callback(struct simple_udp_connection *c,
       LOG_INFO_("\n");
       if(_cpu_on) ENERGEST_ON(ENERGEST_TYPE_CPU);
     #endif
-  #endif /* SARSA_LOGGING */
+  #endif 
   #if WITH_SERVER_REPLY
     LOG_INFO("Sending response.\n");
     udp_fed_reply_t reply;
