@@ -52,7 +52,10 @@
 
 static struct simple_udp_connection udp_conn;
 static uint32_t rx_count = 0;
-static int32_t federation_counter = 0;
+
+#ifdef FEDERATION
+  static int32_t federation_counter = 0;
+#endif
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client");
