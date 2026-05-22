@@ -56,7 +56,6 @@
 typedef struct {
   int32_t energy_level;
   int16_t next_action_q;  
-  uint8_t learning_counter;
 } sarsa_nbr_t;
 
 // GLOBAL WEIGHTS
@@ -94,7 +93,6 @@ get_sarsa_data(rpl_nbr_t *nbr)
     if(s_data != NULL) {
       s_data->energy_level = 100; // to prevent initial bias against new neighbours with unknown energy levels
       s_data->next_action_q = 100; //Optimistic initialisation for next action Q-value
-      s_data->learning_counter = 0;
     }
   }
   return s_data;
@@ -213,6 +211,7 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 {
 
   rpl_instance_t *instance = rpl_get_default_instance();
+  static uint8_t node_learning_counter;
 
   // Check if node is Root
   if(instance != NULL && instance->used) {
@@ -235,11 +234,11 @@ void sarsa_mac_reward_callback(const linkaddr_t *lladdr, int status, int numtx)
 
   data->energy_level = nbr->mc.obj.energy.energy_est; // Update energy level with latest estimate from DIOs
 
-  data->learning_counter++;
-  if(data->learning_counter < LEARNING_BATCH_SIZE) {
+  node_learning_counter++;
+  if(node_learning_counter < LEARNING_BATCH_SIZE) {
       return; // Skip the heavy math and go back to sleep!
   }
-  data->learning_counter = 0; // Reset counter and proceed to math
+  node_learning_counter = 0; // Reset counter and proceed to math
   
   /* 3. The True Environmental Reward */
   int32_t reward = 0;
