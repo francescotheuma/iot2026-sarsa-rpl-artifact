@@ -86,19 +86,16 @@ get_detailed_energy_est(void){
     if(remaining < 0) remaining = 0;
     if(remaining > 100) remaining = 100;
 
-    if(remaining == 0){
-        if(has_logged_depletion == 0){
-            LOG_INFO("Battery depleted. Shutting down node.\n");
-            NETSTACK_MAC.off();
-            NETSTACK_ROUTING.leave_network();
+    stats.percentage = (uint8_t)remaining;
 
-            has_logged_depletion = 1; // Set flag to indicate depletion has been logged
+    if(remaining == 0 && has_logged_depletion == 0){
+        LOG_INFO("Battery depleted. Shutting down node.\n");
+        NETSTACK_MAC.off();
+        NETSTACK_ROUTING.leave_network();
 
-            return stats;
-        }
+        has_logged_depletion = 1; // Set flag to indicate depletion has been logged
     }
 
-    stats.percentage = (uint8_t)remaining;
     return stats;
 }
 /* Function to get battery level*/
