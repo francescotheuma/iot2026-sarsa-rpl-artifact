@@ -31,7 +31,7 @@
     #undef RPL_CONF_OF_OCP
     #define RPL_CONF_OF_OCP 10
     #define SARSA_ENABLED
-    #define SARSA_LOGGING
+    //#define SARSA_LOGGING
 #endif
 
 #define RPL_CONF_WITH_MC 1
