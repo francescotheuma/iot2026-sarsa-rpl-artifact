@@ -26,7 +26,7 @@
 
 /* =====================*/
 
-/* Tell the node to use Objective Function 10 (SARSA) */
+/* Objective Function 10 (SARSA) */
 #ifdef SARSA
     #undef RPL_CONF_OF_OCP
     #define RPL_CONF_OF_OCP 10
