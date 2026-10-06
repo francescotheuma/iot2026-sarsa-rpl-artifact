@@ -1,0 +1,99 @@
+{
+  "source_repository": "https://github.com/francescotheuma/contiki-ng-sarsa",
+  "source_commit": "ed98a7d8e9331802dc1fe50dee4884f8388e2e91",
+  "source_branch_at_inspection": "fyp-submission",
+  "cooja_vendored": true,
+  "submodules": [
+    {
+      "path": "arch/cpu/arm/CMSIS",
+      "commit": "2b7495b8535bdcb306dac29b9ded4cfb679d7e5c",
+      "url": "https://github.com/ARM-software/CMSIS_5.git"
+    },
+    {
+      "path": "arch/cpu/cc26x0-cc13x0/lib/cc13xxware",
+      "commit": "82ed5915d84c5439a5e19f1e21beb1d40274da67",
+      "url": "https://github.com/contiki-ng/cc13xxware.git"
+    },
+    {
+      "path": "arch/cpu/cc26x0-cc13x0/lib/cc2640r2-sdk",
+      "commit": "d66a0740d460f393f10e9fb752a05fea2b9bdd4e",
+      "url": "https://github.com/contiki-ng/cc2640r2-sdk.git"
+    },
+    {
+      "path": "arch/cpu/cc26x0-cc13x0/lib/cc26xxware",
+      "commit": "fffef6efd63c71a627a587dcc97161a24d7d5467",
+      "url": "https://github.com/contiki-ng/cc26xxware.git"
+    },
+    {
+      "path": "arch/cpu/gecko/lib/gecko_sdk",
+      "commit": "310814a9016b60a8012d50c62cc168a783ac102b",
+      "url": "https://github.com/SiliconLabs/gecko_sdk.git"
+    },
+    {
+      "path": "arch/cpu/nrf/lib/nrfx",
+      "commit": "23fb4437c08a9edfdf6d34f002322f693a15e8fe",
+      "url": "https://github.com/NordicSemiconductor/nrfx.git"
+    },
+    {
+      "path": "arch/cpu/nrf/lib/tinyusb",
+      "commit": "bea5f59db2386842f272f6b39438ef6646a568f3",
+      "url": "https://github.com/hathach/tinyusb_src.git"
+    },
+    {
+      "path": "arch/cpu/nrf52840/lib/nrf52-sdk",
+      "commit": "1f7d435017471415bbe4482e1fcffe9bde6c4644",
+      "url": "https://github.com/contiki-ng/nrf-sdk-contiki-ng.git"
+    },
+    {
+      "path": "arch/cpu/simplelink-cc13xx-cc26xx/lib/coresdk_cc13xx_cc26xx",
+      "commit": "60e7325e122e95660fa9a4019e7868aedb4c317d",
+      "url": "https://github.com/contiki-ng/coresdk_cc13xx_cc26xx.git"
+    },
+    {
+      "path": "os/net/security/mbedtls",
+      "commit": "107ea89daaefb9867ea9121002fbbdf926780e98",
+      "url": "https://github.com/Mbed-TLS/mbedtls.git"
+    },
+    {
+      "path": "os/net/security/micro-ecc",
+      "commit": "541b3a78026420a3e369c4c9281c396b5e531113",
+      "url": "https://github.com/kmackay/micro-ecc"
+    },
+    {
+      "path": "tests/18-coap-lwm2m/example-lwm2m-standalone",
+      "commit": "05d39c859b45cbb82e5c04b7aee248ec6722a831",
+      "url": "https://github.com/contiki-ng/example-lwm2m-standalone.git"
+    },
+    {
+      "path": "tools/cc2538-bsl",
+      "commit": "4d64ac633dbaf29d098842c5937ed6eea2fd7c45",
+      "url": "https://github.com/JelmerT/cc2538-bsl.git"
+    },
+    {
+      "path": "tools/cooja",
+      "commit": "1869e6ee8d19812fc018350a633b661fecec947e",
+      "url": "https://github.com/contiki-ng/cooja.git"
+    },
+    {
+      "path": "tools/motelist",
+      "commit": "1b850ba0e8276ca0335aeb2fe14b51bd0852de0f",
+      "url": "https://github.com/contiki-ng/motelist"
+    },
+    {
+      "path": "tools/sensniff",
+      "commit": "70029fc5b21485cfd4afb8037c49661212d0935a",
+      "url": "https://github.com/g-oikonomou/sensniff.git"
+    }
+  ],
+  "historical_drain_multipliers": {
+    "dense_short": 100,
+    "static_diamond": null,
+    "degraded_diamond": null,
+    "dense_longer": null
+  },
+  "cpu_cost": 20,
+  "tx_cost": 60,
+  "rx_cost": 0,
+  "tuning_provenance": "Each trial reset to A20 G80 B7 H8 T10 F10; workbook changes override these defaults; selected by greatest TTFND.",
+  "drain_evidence": "Thesis Figure 13 and Table 5 identify dense short as 100% drain. Its 50% half-drain condition (Figure 14/Table 6, about 12 min MRHOF) differs from conference dense LONG (about 60 min MRHOF). Code multiplies directly by D; values for other published conditions remain unverified."
+}

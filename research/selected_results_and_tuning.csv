@@ -1,0 +1,58 @@
+﻿scenario_sheet,seed,profile,selected_ttfnd_minutes,retained_raw_time,recorded_adjustments_not_complete_configuration
+Experiment 1,123456,MRHOF,26.871,26:52.238,
+Experiment 1,123457,MRHOF,27.031,27:01.849,
+Experiment 1,123458,MRHOF,27.034,27:02.051,
+Experiment 1,123456,SARSA,30.951,30:57.047,Batch 11
+Experiment 1,123457,SARSA,31.969,31:58.134,"Batch 11
+GAMMA 50"
+Experiment 1,123458,SARSA,32.017,32:01.024,
+Experiment 1,123456,Federated SARSA,30.871,30:52.240,
+Experiment 1,123457,Federated SARSA,31.581,31:34.848,"Threshold 7
+Batch 45"
+Experiment 1,123458,Federated SARSA,31.602,31:36.127,
+Experiment 2,123456,MRHOF,26.704,26:42.238,
+Experiment 2,123457,MRHOF,28.531,28:31.849,
+Experiment 2,123458,MRHOF,33.868,33:52.051,
+Experiment 2,123456,SARSA,35.029,35:01.763,"ALPHA 80
+HYSTERESIS 2"
+Experiment 2,123457,SARSA,34.312,34:18.716,"ALPHA 90
+HYSTERESIS 2
+Batch 11"
+Experiment 2,123458,SARSA,34.676,34:40.561,"HYSTERESIS 30
+Batch 18"
+Experiment 2,123456,Federated SARSA,35.272,35:16.337,"ALPHA 80
+HYSTERESIS 2"
+Experiment 2,123457,Federated SARSA,35.078,35:04.696,"ALPHA 65
+HYSTERESIS 2
+Threshold 20"
+Experiment 2,123458,Federated SARSA,35.538,35:32.251,"HYSTERESIS 30
+Batch 18"
+Experiment 3,123456,MRHOF,6.195,6:11.687 ,
+Experiment 3,123457,MRHOF,6.026,6:01.553,
+Experiment 3,123458,MRHOF,6.2,6:11.980,
+Experiment 3,123456,SARSA,4.384,4:23.034,"Alpha 10
+Hysteresis 11"
+Experiment 3,123457,SARSA,4.793,4:47.566,"Alpha 15
+Hysteresis 4
+Batch 5"
+Experiment 3,123458,SARSA,3.701,3:42.089,Hysteresis 4
+Experiment 3,123456,Federated SARSA,4.789,4:47.353,"Threshold 5
+Alpha 25
+Hysteresis 11"
+Experiment 3,123457,Federated SARSA,4.5,4:30.024,Threshold 5
+Experiment 3,123458,Federated SARSA,3.137,3:08.224,"Threshold 5
+Alpha 17
+Hysteresis 2"
+Experiment 3 LONG,123456,MRHOF,60.361,1:00:21.687,
+Experiment 3 LONG,123457,MRHOF,60.192,1:00:11.541,
+Experiment 3 LONG,123458,MRHOF,61.032,1:01:01.911,
+Experiment 3 LONG,123456,SARSA,61.911,1:01.54.665,"Hysteresis 13 
+ALPHA 10
+Batch 13"
+Experiment 3 LONG,123457,SARSA,59.403,59:24.178,"Hyst 17
+Batch 13"
+Experiment 3 LONG,123458,SARSA,70.871,1:10:52.260,Batch 3
+Experiment 3 LONG,123456,Federated SARSA,62.942,1:02:56.513,Hysteresis 13
+Experiment 3 LONG,123457,Federated SARSA,69.577,1:09:34.641,"Hyst 21
+Batch 13"
+Experiment 3 LONG,123458,Federated SARSA,59.538,59:32.284,Batch 15
