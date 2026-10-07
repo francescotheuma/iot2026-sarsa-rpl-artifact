@@ -1,25 +1,25 @@
 scenario,seed,profile,alpha_percent,gamma_percent,update_stride,hysteresis,federation_threshold,blend_percent,drain_multiplier
-Static,123456,SARSA,20,80,11,8,,,
-Static,123456,Federated SARSA,20,80,7,8,10,10,
-Static,123457,SARSA,20,50,11,8,,,
-Static,123457,Federated SARSA,20,80,45,8,7,10,
-Static,123458,SARSA,20,80,7,8,,,
-Static,123458,Federated SARSA,20,80,7,8,10,10,
-Degraded,123456,SARSA,80,80,7,2,,,
-Degraded,123456,Federated SARSA,80,80,7,2,10,10,
-Degraded,123457,SARSA,90,80,11,2,,,
-Degraded,123457,Federated SARSA,65,80,7,2,20,10,
-Degraded,123458,SARSA,20,80,18,30,,,
-Degraded,123458,Federated SARSA,20,80,18,30,10,10,
+Static,123456,SARSA,20,80,11,8,,,100
+Static,123456,Federated SARSA,20,80,7,8,10,10,100
+Static,123457,SARSA,20,50,11,8,,,100
+Static,123457,Federated SARSA,20,80,45,8,7,10,100
+Static,123458,SARSA,20,80,7,8,,,100
+Static,123458,Federated SARSA,20,80,7,8,10,10,100
+Degraded,123456,SARSA,80,80,7,2,,,100
+Degraded,123456,Federated SARSA,80,80,7,2,10,10,100
+Degraded,123457,SARSA,90,80,11,2,,,100
+Degraded,123457,Federated SARSA,65,80,7,2,20,10,100
+Degraded,123458,SARSA,20,80,18,30,,,100
+Degraded,123458,Federated SARSA,20,80,18,30,10,10,100
 Dense short,123456,SARSA,10,80,7,11,,,100
 Dense short,123456,Federated SARSA,25,80,7,11,5,10,100
 Dense short,123457,SARSA,15,80,5,4,,,100
 Dense short,123457,Federated SARSA,20,80,7,8,5,10,100
 Dense short,123458,SARSA,20,80,7,4,,,100
 Dense short,123458,Federated SARSA,17,80,7,2,5,10,100
-Dense longer,123456,SARSA,10,80,13,13,,,
-Dense longer,123456,Federated SARSA,20,80,7,13,10,10,
-Dense longer,123457,SARSA,20,80,13,17,,,
-Dense longer,123457,Federated SARSA,20,80,13,21,10,10,
-Dense longer,123458,SARSA,20,80,3,8,,,
-Dense longer,123458,Federated SARSA,20,80,15,8,10,10,
+Dense longer,123456,SARSA,10,80,13,13,,,50
+Dense longer,123456,Federated SARSA,20,80,7,13,10,10,50
+Dense longer,123457,SARSA,20,80,13,17,,,50
+Dense longer,123457,Federated SARSA,20,80,13,21,10,10,50
+Dense longer,123458,SARSA,20,80,3,8,,,50
+Dense longer,123458,Federated SARSA,20,80,15,8,10,10,50

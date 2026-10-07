@@ -1,0 +1,13 @@
+scenario,profile,n,mean_ttfnd_minutes,sample_sd_minutes
+Static,MRHOF,3,26.979,0.093
+Static,SARSA,3,31.646,0.602
+Static,Federated SARSA,3,31.351,0.416
+Degraded,MRHOF,3,29.701,3.723
+Degraded,SARSA,3,34.672,0.359
+Degraded,Federated SARSA,3,35.296,0.231
+Dense short,MRHOF,3,6.140,0.099
+Dense short,SARSA,3,4.293,0.552
+Dense short,Federated SARSA,3,4.142,0.882
+Dense longer,MRHOF,3,60.528,0.444
+Dense longer,SARSA,3,64.062,6.029
+Dense longer,Federated SARSA,3,64.019,5.105
