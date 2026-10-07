@@ -22,7 +22,7 @@ The implementation is preserved without algorithm changes. Artifact packaging ch
 - `research/selected_results_and_tuning.csv`: 36 selected TTFND results and original workbook tuning notes.
 - `research/complete_learning_configurations.csv`: complete parameter tuples for the 24 selected learning runs, reconstructed using the author's confirmed reset-to-default procedure.
 - `research/table1_summary.csv`: Table 1 means and sample standard deviations, checked by `research/verify_results.py`.
-- `research/provenance.json`: source and dependency versions, confirmed battery settings and their provenance.
+- `research/provenance.json`: source and dependency versions, battery settings, unresolved values and their provenance.
 - `SHA256SUMS.txt`: package-file integrity checks, covering every tracked file except the checksum list itself. `.gitattributes` preserves the expected file bytes across Windows and Linux checkouts.
 
 The broader `source/os/`, `source/arch/`, `source/tools/` and other example/test folders are retained Contiki-NG and Cooja infrastructure. They provide the original build context; the paper's experiments are the three `Final Experiment ...` configurations listed below. Generic Sky/Cooja and Renode examples in the application folder are not additional paper experiments.
@@ -71,11 +71,11 @@ CPU/TX/RX costs are respectively 20/60/0 for all experiments. Only `CONF_DRAIN_M
 | Static diamond | 100 |
 | Degraded diamond | 100 |
 | Dense short | 100 |
-| Dense longer | 50 |
+| Dense longer | Unresolved: 10 or 50 are candidates |
 
-All other battery settings were unchanged, and each condition used the same battery settings for MRHOF, Standalone SARSA and Federated SARSA. The learning-configuration CSV and provenance manifest record the same multipliers. The archived project configuration starts at 100: explicitly set it to 50 before building dense longer.
+The author reports that the other battery settings were unchanged and that all three profiles used the same battery settings within a condition. Static diamond, degraded diamond and dense short retain the reported multiplier of 100. The historical dense-longer multiplier is unresolved, with 10 and 50 as candidates. The six dense-longer learning rows leave `drain_multiplier` blank, and the provenance manifest uses `null`. These represent an unknown setting, not zero or a default value. The archived project configuration starts at 100 and does not establish the long-test setting.
 
-The multiplier acts directly on the weighted Energest ticks; 50 is half the rate of 100 for the same recorded activity. The historical settings rely on the author's confirmation; they have not been independently rerun.
+The multiplier acts directly on the weighted Energest ticks. Commit history records 50 when the rings topology was added on 26 April and again on 3 May, followed by 100 on 4 May and at submission. Committed settings of 10 occur earlier in March. None of those commits is linked to the selected dense-longer runs. The fallback of 10 in `battery.c` applies only when `project-conf.h` does not define the multiplier. See `research/provenance.json` for the exact commits. Exact reproduction of the dense-longer condition requires recovering its historical setting; trying a candidate value is a new run, not a verified reconstruction.
 
 After configuring the profile and parameters, rebuild both applications from `source/examples/rpl-udp/`:
 
@@ -100,7 +100,7 @@ TTFND is elapsed simulation time to the first battery-modelled client's depletio
 
 1. Choose the condition, protocol and seed. The recorded seeds are 123456, 123457 and 123458. Match `Static`, `Degraded`, `Dense short` or `Dense longer` in the learning-configuration CSV to the condition tables above.
 2. In `source/examples/rpl-udp/project-conf.h`, enable or disable `SARSA` and `FEDERATION` using the protocol table. For a learning variant, reset all six learning macros to the defaults above, then apply the matching CSV row. Empty federation fields mean not applicable to Standalone SARSA, not missing values. MRHOF has no learning-configuration row because it does not learn.
-3. Set `CONF_DRAIN_MAGNITUDE` for the chosen condition. Keep CPU/TX/RX coefficients at 20/60/0.
+3. Set `CONF_DRAIN_MAGNITUDE` to 100 for static diamond, degraded diamond or dense short. The dense-longer value is unresolved: recover it before claiming an exact reproduction. If exploring 10 or 50, record the choice explicitly as a candidate configuration. Keep CPU/TX/RX coefficients at 20/60/0.
 4. Clean and rebuild both Z1 applications using the commands above. Open the saved scenario and check that its client and root mote types use those rebuilt firmware files.
 5. Set the chosen simulation seed in Cooja. Run until the first client reports `Battery depleted. Shutting down node.` and record its simulation timestamp in minutes. Do not include root depletion or average individual clients' lifetimes. Use the event timestamp, not the later display of a periodic sample.
 6. Repeat for the other seeds. Summarise the three TTFND values using the arithmetic mean and sample standard deviation (`n-1` denominator). The published learning results were selected after tuning on each of these seeds; repeating the recorded settings is not an independent held-out evaluation.
@@ -141,13 +141,13 @@ From the repository root, run:
 python3 research/verify_results.py
 ```
 
-This recomputes all 12 means and sample standard deviations from the 36 recorded TTFND values, checks the rounded values against Table 1, and checks the scenario/seed/profile mapping, drain values and reconstruction from tuning notes for all 24 learning configurations. It does not rerun Cooja. `research/table1_summary.csv` contains the resulting summary. The calculations use the recorded decimal-minute values.
+This recomputes all 12 means and sample standard deviations from the 36 recorded TTFND values, checks the rounded values against Table 1, and checks the scenario/seed/profile mapping, known drain values, the explicit missing dense-longer value, and reconstruction from tuning notes for all 24 learning configurations. It does not rerun Cooja. `research/table1_summary.csv` contains the resulting summary. The calculations use the recorded decimal-minute values.
 
 To verify the package file checksums on Linux, run `sha256sum -c SHA256SUMS.txt` from the repository root before editing any files. A configuration change will intentionally invalidate the corresponding checksum.
 
 ## Interpretation and limitations
 
-Learning settings were manually tuned separately for each scenario/seed, selecting the longest TTFND. These are selected outcomes rather than held-out results from one fixed policy. Packet delivery and delay were not selection criteria. Three seeds, no additional energy-aware baseline, unprofiled full implementation overhead, unavailable historical host/compiler versions and incomplete tuning-search history limit reproducibility and generalisation. Public availability of this package does not resolve those gaps.
+Learning settings were manually tuned separately for each scenario/seed, selecting the longest TTFND. These are selected outcomes rather than held-out results from one fixed policy. Packet delivery and delay were not selection criteria. The unresolved dense-longer drain multiplier prevents exact reconstruction of that condition. Three seeds, no additional energy-aware baseline, unprofiled full implementation overhead, unavailable historical host/compiler versions and incomplete tuning-search history limit reproducibility and generalisation. Public availability of this package does not resolve those gaps.
 
 ## Licences
 
