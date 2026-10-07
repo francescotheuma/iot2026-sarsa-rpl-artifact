@@ -56,7 +56,7 @@ CPU/TX/RX costs are respectively 20/60/0 for all experiments. Only `CONF_DRAIN_M
 | Dense short | 100 |
 | Dense longer | 50 |
 
-These values were confirmed by the author on 7 October 2026. All other battery settings were unchanged, and each condition used the same battery settings for MRHOF, Standalone SARSA and Federated SARSA. The learning-configuration CSV and provenance manifest record the same multipliers. The archived project configuration starts at 100: explicitly set it to 50 before building dense longer.
+All other battery settings were unchanged, and each condition used the same battery settings for MRHOF, Standalone SARSA and Federated SARSA. The learning-configuration CSV and provenance manifest record the same multipliers. The archived project configuration starts at 100: explicitly set it to 50 before building dense longer.
 
 The multiplier acts directly on the weighted Energest ticks; 50 is half the rate of 100 for the same recorded activity. The historical settings rely on the author's confirmation; they have not been independently rerun.
 
