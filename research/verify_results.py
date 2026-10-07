@@ -13,7 +13,7 @@ SCENARIOS = {
     "Experiment 1": ("Static", "static_diamond", 100),
     "Experiment 2": ("Degraded", "degraded_diamond", 100),
     "Experiment 3": ("Dense short", "dense_short", 100),
-    "Experiment 3 LONG": ("Dense longer", "dense_longer", 50),
+    "Experiment 3 LONG": ("Dense longer", "dense_longer", None),
 }
 PROFILES = ("MRHOF", "SARSA", "Federated SARSA")
 SEEDS = {"123456", "123457", "123458"}
@@ -87,10 +87,15 @@ def main():
             check(row[field] == str(expected_value),
                   f"Configuration differs from defaults/tuning notes: {key}, {field}")
         _, provenance_key, drain = next(v for v in SCENARIOS.values() if v[0] == key[0])
-        check(int(row["drain_multiplier"]) == drain, f"Wrong drain multiplier: {key}")
+        expected_drain = "" if drain is None else str(drain)
+        check(row["drain_multiplier"] == expected_drain,
+              f"Wrong drain multiplier or unsupported historical value: {key}")
         check(provenance["historical_drain_multipliers"][provenance_key] == drain,
               f"Provenance disagrees: {key[0]}")
     check(seen == expected_keys, "Missing learning configurations")
+    evidence = provenance["dense_longer_drain_evidence"]
+    check(evidence["status"] == "unresolved" and evidence["candidate_values"] == [10, 50],
+          "Dense-longer drain uncertainty is not recorded consistently")
 
     summary = []
     for scenario, expected in TABLE1.items():
@@ -107,7 +112,8 @@ def main():
     check(read_csv("table1_summary.csv") == [{k: str(v) for k, v in r.items()} for r in summary],
           "Summary CSV differs from recomputed results")
     print("PASS: all 12 Table 1 means and sample standard deviations match.")
-    print("PASS: all 24 learning configurations match seeds, tuning notes and confirmed drain settings.")
+    print("PASS: all 24 learning configurations match seeds, tuning notes and recorded drain status.")
+    print("NOTE: dense-longer drain is unresolved (10 or 50); exact reproduction is not established.")
     print("Recorded results checked only; Cooja was not rerun.")
 
 

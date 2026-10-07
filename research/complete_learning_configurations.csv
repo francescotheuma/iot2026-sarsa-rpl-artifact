@@ -17,9 +17,9 @@ Dense short,123457,SARSA,15,80,5,4,,,100
 Dense short,123457,Federated SARSA,20,80,7,8,5,10,100
 Dense short,123458,SARSA,20,80,7,4,,,100
 Dense short,123458,Federated SARSA,17,80,7,2,5,10,100
-Dense longer,123456,SARSA,10,80,13,13,,,50
-Dense longer,123456,Federated SARSA,20,80,7,13,10,10,50
-Dense longer,123457,SARSA,20,80,13,17,,,50
-Dense longer,123457,Federated SARSA,20,80,13,21,10,10,50
-Dense longer,123458,SARSA,20,80,3,8,,,50
-Dense longer,123458,Federated SARSA,20,80,15,8,10,10,50
+Dense longer,123456,SARSA,10,80,13,13,,,
+Dense longer,123456,Federated SARSA,20,80,7,13,10,10,
+Dense longer,123457,SARSA,20,80,13,17,,,
+Dense longer,123457,Federated SARSA,20,80,13,21,10,10,
+Dense longer,123458,SARSA,20,80,3,8,,,
+Dense longer,123458,Federated SARSA,20,80,15,8,10,10,

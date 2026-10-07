@@ -88,13 +88,13 @@
     "dense_short": 100,
     "static_diamond": 100,
     "degraded_diamond": 100,
-    "dense_longer": 50
+    "dense_longer": null
   },
   "cpu_cost": 20,
   "tx_cost": 60,
   "rx_cost": 0,
   "tuning_provenance": "Each trial reset to A20 G80 B7 H8 T10 F10; workbook changes override these defaults; selected by greatest TTFND.",
-  "drain_evidence": "Author confirmed on 2026-10-07 that CONF_DRAIN_MAGNITUDE was 100 for static diamond, degraded diamond and dense short, and 50 for conference dense longer; all other battery settings were unchanged across conditions and all variants used the same battery settings within a condition. This confirmation supplies historical settings; it is not an independent rerun. The thesis also records a half-drain dense experiment with a different reported lifetime; the thesis and conference result sets must not be conflated.",
+  "drain_evidence": "The author reported 100 for static diamond, degraded diamond and dense short. The initial recollection of 50 for dense longer, recorded on 2026-10-07, was questioned by the author on 2026-10-08 (50 versus 10). Dense longer is therefore unresolved. All other battery settings and equal settings across profiles within each condition remain author-reported; the historical runs have not been independently reconstructed.",
   "source_history_branch": "paper-source",
   "source_directory_in_artifact": "source/",
   "submodule_paths_relative_to": "Original submission root; prefix paths with source/ in the main artifact.",
@@ -121,5 +121,46 @@
   ],
   "cooja_commit_publicly_retrievable_from_upstream": false,
   "cooja_version_evidence": "The original submission pins Cooja commit 1869e6ee8d19812fc018350a633b661fecec947e. That commit is not retrievable from the recorded public upstream remote. Use the vendored Cooja tree, including its logging support, and the artifact file checksums.",
-  "logger_evidence": "Three logger examples are included under source/tools/cooja/. The exact variant and timeout settings used for each reported run have not been established."
+  "logger_evidence": "Three logger examples are included under source/tools/cooja/. The exact variant and timeout settings used for each reported run have not been established.",
+  "dense_longer_drain_evidence": {
+    "status": "unresolved",
+    "candidate_values": [
+      10,
+      50
+    ],
+    "reviewed_on": "2026-10-08",
+    "committed_project_conf_settings": [
+      {
+        "commit": "30a08ecd3f80c8d50acff5acaf1b23176019b822",
+        "date": "2026-03-23",
+        "value": 10,
+        "context": "Earlier development configuration, before the rings topology was added."
+      },
+      {
+        "commit": "72e8e9b2d6421b76b000c771b9899738ffbc9568",
+        "date": "2026-04-26",
+        "value": 50,
+        "context": "Rings topology added; changed 100 to 50."
+      },
+      {
+        "commit": "f9db68d0037f711c185ccbcfa112390a9bcbe134",
+        "date": "2026-05-03",
+        "value": 50,
+        "context": "Changed 100 to 50."
+      },
+      {
+        "commit": "dabb543ad8739864f79389971f5a9e5e70a1af83",
+        "date": "2026-05-04",
+        "value": 100,
+        "context": "Changed 50 to 100."
+      },
+      {
+        "commit": "ed98a7d8e9331802dc1fe50dee4884f8388e2e91",
+        "date": "2026-05-30",
+        "value": 100,
+        "context": "Final submission configuration."
+      }
+    ],
+    "interpretation": "These commits establish development settings, not the setting used for the selected dense-longer results. The 10 fallback in battery.c is overridden by an explicit project-conf.h definition. Candidate values are not verified historical settings."
+  }
 }
