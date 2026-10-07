@@ -1,0 +1,3 @@
+# Keep artifact records exactly as committed; preserve archived source as LF.
+* -text
+source/** text=auto eol=lf

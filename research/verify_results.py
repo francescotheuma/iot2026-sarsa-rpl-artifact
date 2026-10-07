@@ -2,6 +2,8 @@
 
 import csv
 import json
+import math
+import re
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean, stdev
@@ -15,6 +17,16 @@ SCENARIOS = {
 }
 PROFILES = ("MRHOF", "SARSA", "Federated SARSA")
 SEEDS = {"123456", "123457", "123458"}
+DEFAULTS = {
+    "alpha_percent": 20, "gamma_percent": 80, "update_stride": 7,
+    "hysteresis": 8, "federation_threshold": 10, "blend_percent": 10,
+}
+NOTE_FIELDS = {
+    "alpha": "alpha_percent", "gamma": "gamma_percent", "batch": "update_stride",
+    "hysteresis": "hysteresis", "hyst": "hysteresis",
+    "threshold": "federation_threshold", "blend": "blend_percent",
+}
+NOTE_PATTERN = re.compile(r"(alpha|gamma|batch|hysteresis|hyst|threshold|blend)\s+(\d+)", re.I)
 # Published mean and sample standard deviation, rounded to three decimals.
 TABLE1 = {
     "Static": (("26.979", "0.093"), ("31.646", "0.602"), ("31.351", "0.416")),
@@ -41,13 +53,26 @@ def main():
     check(len(rows) == 36, "Expected 36 selected results")
     check(len(configs) == 24, "Expected 24 learning configurations")
     groups = defaultdict(dict)
+    reconstructed = {}
     for row in rows:
         scenario = SCENARIOS[row["scenario_sheet"]][0]
         profile, seed = row["profile"], row["seed"]
         check(profile in PROFILES and seed in SEEDS, "Unexpected profile or seed")
         group = groups[scenario, profile]
         check(seed not in group, f"Duplicate result: {scenario}, {profile}, {seed}")
-        group[seed] = float(row["selected_ttfnd_minutes"])
+        lifetime = float(row["selected_ttfnd_minutes"])
+        check(math.isfinite(lifetime) and lifetime > 0, "Invalid recorded lifetime")
+        group[seed] = lifetime
+        if profile != "MRHOF":
+            settings = DEFAULTS.copy()
+            notes = row["recorded_adjustments_not_complete_configuration"]
+            check(not NOTE_PATTERN.sub("", notes).strip(),
+                  f"Unrecognised tuning note: {scenario}, {profile}, {seed}")
+            for name, value in NOTE_PATTERN.findall(notes):
+                settings[NOTE_FIELDS[name.lower()]] = int(value)
+            if profile == "SARSA":
+                settings["federation_threshold"] = settings["blend_percent"] = ""
+            reconstructed[scenario, profile, seed] = settings
 
     expected_keys = {
         (scenario, profile, seed)
@@ -58,6 +83,9 @@ def main():
         key = row["scenario"], row["profile"], row["seed"]
         check(key in expected_keys and key not in seen, f"Unexpected/duplicate configuration: {key}")
         seen.add(key)
+        for field, expected_value in reconstructed[key].items():
+            check(row[field] == str(expected_value),
+                  f"Configuration differs from defaults/tuning notes: {key}, {field}")
         _, provenance_key, drain = next(v for v in SCENARIOS.values() if v[0] == key[0])
         check(int(row["drain_multiplier"]) == drain, f"Wrong drain multiplier: {key}")
         check(provenance["historical_drain_multipliers"][provenance_key] == drain,
@@ -79,7 +107,7 @@ def main():
     check(read_csv("table1_summary.csv") == [{k: str(v) for k, v in r.items()} for r in summary],
           "Summary CSV differs from recomputed results")
     print("PASS: all 12 Table 1 means and sample standard deviations match.")
-    print("PASS: all 24 learning configurations match seeds and confirmed drain settings.")
+    print("PASS: all 24 learning configurations match seeds, tuning notes and confirmed drain settings.")
     print("Recorded results checked only; Cooja was not rerun.")
 
 

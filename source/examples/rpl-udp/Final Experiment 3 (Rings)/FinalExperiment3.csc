@@ -37,7 +37,7 @@
       <description>Z1 server</description>
       <source>[CONFIG_DIR]/../udp-server.c</source>
       <commands>$(MAKE) -j$(CPUS) udp-server.z1 TARGET=z1</commands>
-      <firmware>/home/franc/contiki-ng/examples/rpl-udp/build/z1/udp-server.z1</firmware>
+      <firmware>[CONFIG_DIR]/../build/z1/udp-server.z1</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>

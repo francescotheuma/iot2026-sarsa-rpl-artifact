@@ -96,5 +96,30 @@
   "tuning_provenance": "Each trial reset to A20 G80 B7 H8 T10 F10; workbook changes override these defaults; selected by greatest TTFND.",
   "drain_evidence": "Author confirmed on 2026-10-07 that CONF_DRAIN_MAGNITUDE was 100 for static diamond, degraded diamond and dense short, and 50 for conference dense longer; all other battery settings were unchanged across conditions and all variants used the same battery settings within a condition. This confirmation supplies historical settings; it is not an independent rerun. The thesis also records a half-drain dense experiment with a different reported lifetime; the thesis and conference result sets must not be conflated.",
   "source_history_branch": "paper-source",
-  "source_directory_in_artifact": "source/"
+  "source_directory_in_artifact": "source/",
+  "submodule_paths_relative_to": "Original submission root; prefix paths with source/ in the main artifact.",
+  "artifact_adjustments": [
+    {
+      "path": "source/examples/rpl-udp/Final Experiment 3 (Rings)/FinalExperiment3.csc",
+      "change": "Replace the absolute root firmware path with [CONFIG_DIR]/../build/z1/udp-server.z1. Topology, radio settings and firmware build commands are unchanged."
+    },
+    {
+      "path": "source/examples/rpl-udp/README.md",
+      "change": "Replace the generic upstream example description with a guide to the paper implementation and experiment files."
+    },
+    {
+      "path": ".gitattributes",
+      "change": "Keep artifact records as committed and source text as LF for portable file checksum verification."
+    },
+    {
+      "paths": [
+        "source/tools/cooja/logging_script.js",
+        "source/tools/cooja/logging_script_updated.js"
+      ],
+      "change": "Correct timeout-duration and relative-output-path comments only; logger behaviour is unchanged."
+    }
+  ],
+  "cooja_commit_publicly_retrievable_from_upstream": false,
+  "cooja_version_evidence": "The original submission pins Cooja commit 1869e6ee8d19812fc018350a633b661fecec947e. That commit is not retrievable from the recorded public upstream remote. Use the vendored Cooja tree, including its logging support, and the artifact file checksums.",
+  "logger_evidence": "Three logger examples are included under source/tools/cooja/. The exact variant and timeout settings used for each reported run have not been established."
 }
