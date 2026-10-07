@@ -6,6 +6,8 @@ Source and selected results supporting **Energy-Aware RPL Parent Selection using
 
 `source/` contains the Contiki-NG implementation used for the paper, identified by submission commit `ed98a7d8e9331802dc1fe50dee4884f8388e2e91`. The application, learning algorithm, battery model and saved experiment configurations are included in this repository.
 
+The original submission commits are preserved in this repository on the [`paper-source`](https://github.com/francescotheuma/iot2026-sarsa-rpl-artifact/tree/paper-source) branch and in the artifact branch's ancestry. On `paper-source`, files retain their original paths (for example, `examples/rpl-udp/`). The artifact places the same implementation under `source/` alongside the reproduction instructions and result records.
+
 Cooja is included under `source/tools/cooja/` at the parent's pinned commit `1869e6ee8d19812fc018350a633b661fecec947e`. Other optional platform submodules are not bundled; their public URLs and exact commits are listed in `research/provenance.json`. The included source is preserved without algorithm changes.
 
 ## Contents

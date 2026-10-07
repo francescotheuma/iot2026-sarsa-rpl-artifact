@@ -94,5 +94,7 @@
   "tx_cost": 60,
   "rx_cost": 0,
   "tuning_provenance": "Each trial reset to A20 G80 B7 H8 T10 F10; workbook changes override these defaults; selected by greatest TTFND.",
-  "drain_evidence": "Author confirmed on 2026-10-07 that CONF_DRAIN_MAGNITUDE was 100 for static diamond, degraded diamond and dense short, and 50 for conference dense longer; all other battery settings were unchanged across conditions and all variants used the same battery settings within a condition. This confirmation supplies historical settings; it is not an independent rerun. The thesis also records a half-drain dense experiment with a different reported lifetime; the thesis and conference result sets must not be conflated."
+  "drain_evidence": "Author confirmed on 2026-10-07 that CONF_DRAIN_MAGNITUDE was 100 for static diamond, degraded diamond and dense short, and 50 for conference dense longer; all other battery settings were unchanged across conditions and all variants used the same battery settings within a condition. This confirmation supplies historical settings; it is not an independent rerun. The thesis also records a half-drain dense experiment with a different reported lifetime; the thesis and conference result sets must not be conflated.",
+  "source_history_branch": "paper-source",
+  "source_directory_in_artifact": "source/"
 }
