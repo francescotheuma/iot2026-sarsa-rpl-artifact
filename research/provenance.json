@@ -1,7 +1,6 @@
 {
-  "source_repository": "https://github.com/francescotheuma/contiki-ng-sarsa",
+  "source_repository": "https://github.com/francescotheuma/iot2026-sarsa-rpl-artifact",
   "source_commit": "ed98a7d8e9331802dc1fe50dee4884f8388e2e91",
-  "source_branch_at_inspection": "fyp-submission",
   "cooja_vendored": true,
   "submodules": [
     {
@@ -87,13 +86,15 @@
   ],
   "historical_drain_multipliers": {
     "dense_short": 100,
-    "static_diamond": null,
-    "degraded_diamond": null,
-    "dense_longer": null
+    "static_diamond": 100,
+    "degraded_diamond": 100,
+    "dense_longer": 50
   },
   "cpu_cost": 20,
   "tx_cost": 60,
   "rx_cost": 0,
   "tuning_provenance": "Each trial reset to A20 G80 B7 H8 T10 F10; workbook changes override these defaults; selected by greatest TTFND.",
-  "drain_evidence": "Thesis Figure 13 and Table 5 identify dense short as 100% drain. Its 50% half-drain condition (Figure 14/Table 6, about 12 min MRHOF) differs from conference dense LONG (about 60 min MRHOF). Code multiplies directly by D; values for other published conditions remain unverified."
+  "drain_evidence": "Author confirmed on 2026-10-07 that CONF_DRAIN_MAGNITUDE was 100 for static diamond, degraded diamond and dense short, and 50 for conference dense longer; all other battery settings were unchanged across conditions and all variants used the same battery settings within a condition. This confirmation supplies historical settings; it is not an independent rerun. The thesis also records a half-drain dense experiment with a different reported lifetime; the thesis and conference result sets must not be conflated.",
+  "source_history_branch": "paper-source",
+  "source_directory_in_artifact": "source/"
 }
