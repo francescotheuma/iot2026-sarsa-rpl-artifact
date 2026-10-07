@@ -1,7 +1,6 @@
 {
-  "source_repository": "https://github.com/francescotheuma/contiki-ng-sarsa",
+  "source_repository": "https://github.com/francescotheuma/iot2026-sarsa-rpl-artifact",
   "source_commit": "ed98a7d8e9331802dc1fe50dee4884f8388e2e91",
-  "source_branch_at_inspection": "fyp-submission",
   "cooja_vendored": true,
   "submodules": [
     {

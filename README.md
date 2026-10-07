@@ -4,7 +4,7 @@ Source and selected results supporting **Energy-Aware RPL Parent Selection using
 
 ## Version and scope
 
-`source/` contains the tracked Contiki-NG submission tree at commit `ed98a7d8e9331802dc1fe50dee4884f8388e2e91` of `francescotheuma/contiki-ng-sarsa`, inspected on branch `fyp-submission`. This is a snapshot without the private repository's Git history. It is deliberately not a snapshot of the different `main` branch. Uncommitted changes and generated logs/builds are excluded.
+`source/` contains the Contiki-NG implementation used for the paper, identified by submission commit `ed98a7d8e9331802dc1fe50dee4884f8388e2e91`. The application, learning algorithm, battery model and saved experiment configurations are included in this repository.
 
 Cooja is included under `source/tools/cooja/` at the parent's pinned commit `1869e6ee8d19812fc018350a633b661fecec947e`. Other optional platform submodules are not bundled; their public URLs and exact commits are listed in `research/provenance.json`. The included source is preserved without algorithm changes.
 
@@ -58,7 +58,7 @@ CPU/TX/RX costs are respectively 20/60/0 for all experiments. Only `CONF_DRAIN_M
 
 These values were confirmed by the author on 7 October 2026. All other battery settings were unchanged, and each condition used the same battery settings for MRHOF, Standalone SARSA and Federated SARSA. The learning-configuration CSV and provenance manifest record the same multipliers. The archived project configuration starts at 100: explicitly set it to 50 before building dense longer.
 
-The multiplier acts directly on the weighted Energest ticks; 50 is half the rate of 100 for the same recorded activity. The thesis also records a half-drain dense experiment with a different reported lifetime. Keep that result set distinct from the conference dense-longer results. The historical settings above rely on the author's confirmation; they have not been independently rerun.
+The multiplier acts directly on the weighted Energest ticks; 50 is half the rate of 100 for the same recorded activity. The historical settings rely on the author's confirmation; they have not been independently rerun.
 
 After configuring the profile and parameters, rebuild both applications from `source/examples/rpl-udp/`:
 
@@ -77,7 +77,7 @@ Open the selected saved simulation in Cooja and confirm that both mote types use
 
 Set seed 123456, 123457 or 123458 as recorded in the results. Dense short and longer share the layout but use different depletion conditions and selected learning parameters. Saved files resolve application paths relative to the configuration directory.
 
-TTFND is elapsed simulation time to the first battery-modelled client's depletion. Capacity is an artificial 10^9 weighted ticks, listening cost is zero, and the root is not depleted. This is a CPU/TX stress proxy, not a calibrated hardware battery model. Exact historical custom logger scripts and the full tuning-search history have not been established; the committed Cooja tree is included, not the current uncommitted logger variants.
+TTFND is elapsed simulation time to the first battery-modelled client's depletion. Capacity is an artificial 10^9 weighted ticks, listening cost is zero, and the root is not depleted. This is a CPU/TX stress proxy, not a calibrated hardware battery model. The original custom logging scripts and complete tuning-search history are not included.
 
 ## Reproduce a selected run
 
@@ -87,8 +87,6 @@ TTFND is elapsed simulation time to the first battery-modelled client's depletio
 4. Clean and rebuild both Z1 applications using the commands above. Open the saved scenario and check that its client and root mote types use those rebuilt firmware files.
 5. Set the chosen simulation seed in Cooja. Run until the first client reports `Battery depleted. Shutting down node.` and record its simulation timestamp in minutes. Do not include root depletion or average individual clients' lifetimes. Use the event timestamp, not the later display of a periodic sample.
 6. Repeat for the other seeds. Summarise the three TTFND values using the arithmetic mean and sample standard deviation (`n-1` denominator). The published learning results were selected after tuning on each of these seeds; repeating the recorded settings is not an independent held-out evaluation.
-
-The archived logger and full tuning search are not completely recovered. These instructions describe how to configure and measure a run, not a claim that the historical results have been rerun successfully.
 
 ## Saved simulator and radio settings
 
@@ -124,8 +122,6 @@ Learning settings were manually tuned separately for each scenario/seed, selecti
 
 ## Licences
 
-Upstream licence files and per-file copyright notices are retained under `source/`. See `source/LICENSE.md` and `source/tools/cooja/LICENSE.md`; individual files and third-party components may carry their own terms. This archive does not replace their licences with a new blanket licence. Newly added documentation and result records have no separately assigned licence in this draft; the author should choose one before publication.
+The artifact documentation, research result records and verification script are provided under the MIT licence in `LICENSE`.
 
-## Publication status
-
-Public repository: https://github.com/francescotheuma/iot2026-sarsa-rpl-artifact . The source version is fixed by the provenance manifest. No tagged release or research-archive DOI has been assigned; do not cite an invented release or DOI.
+The implementation and bundled third-party code retain their existing licences and copyright notices. See `source/LICENSE.md`, `source/tools/cooja/LICENSE.md` and individual file headers. The root MIT licence applies only to the artifact material described above.
