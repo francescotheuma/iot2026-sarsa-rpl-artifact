@@ -1,25 +1,19 @@
-# rpl-udp
+# Paper implementation: RPL UDP with SARSA and federated weight sharing
 
-A simple RPL network with UDP communication. This is a self-contained example:
-it includes a DAG root (`udp-server.c`) and DAG nodes (`udp-clients.c`).
-This example runs without a border router -- this is a stand-alone RPL network.
+This folder contains the paper's UDP application and parent-selection implementation:
 
-The DAG root also acts as UDP server. The DAG nodes are UDP client. The clients
-send a UDP request periodically, that simply includes a counter as payload.
-When receiving a request, The server sends a response with the same counter
-back to the originator.
+- `udp-client.c` and `udp-server.c`: application traffic and federated weight reports/replies.
+- `rpl-sarsa.c`: parent scoring, learning updates and federated blending.
+- `battery.c` and `battery.h`: the Energest-based battery proxy and depletion logging.
+- `project-conf.h`: protocol switches, learning parameters and battery coefficients.
+- `Final Experiment 1 (Simple Diamond)/FinalExperiment1.csc`: static diamond.
+- `Final Experiment 2 (SARSA load balancing)/FinalExperiment2.csc`: degraded diamond.
+- `Final Experiment 3 (Rings)/FinalExperiment3.csc`: dense short/longer topology.
 
-The `.csc` files show example networks in the Cooja simulator, for sky motes and
-for cooja motes.
+Use the [artifact README](../../../README.md) for build instructions, configuration tables, seed selection and measurement steps. The matching per-run settings and result records are under [`research/`](../../../research/).
 
-For this example a "renode" make target is available, to run a 3 node
-emulation in the Renode framework. For further instructions on installing and
-using Renode please refer to [the documentation][1].
+The saved experiments use Z1 motes, with node 1 as the UDP server/RPL root and the other nodes as clients. Enable `SARSA` for learning parent selection, and enable `FEDERATION` alongside it for weight sharing. Disable both for the MRHOF comparison. Clean and rebuild both applications whenever these settings change.
 
-[1]: https://docs.contiki-ng.org/en/develop/doc/tutorials/Running-Contiki-NG-in-Renode.html
+`analyse_sarsa_simple.py` is the archived plotting helper. It needs pandas, Matplotlib and separately captured logs in the format described in the artifact README. Historical logs are not included.
 
-The rpl-udp.robot is a Robot framework test for renode. To run that do:
-
-    >make TARGET=cc2538dk
-    >renode-test rpl-udp.robot
-
+The generic `rpl-udp-sky.csc`, `rpl-udp-cooja.csc`, `rpl-udp.resc` and `rpl-udp.robot` files are retained upstream examples for Sky/Cooja motes and Renode. They are not the saved configurations used for the paper.

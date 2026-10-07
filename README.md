@@ -4,27 +4,42 @@ Source and selected results supporting **Energy-Aware RPL Parent Selection using
 
 ## Version and scope
 
+Use **`main`** for the complete artifact: this README, the `research/` records and the implementation under `source/`. The `paper-source` branch preserves the original submission for reference; it does not need to be merged or checked out to run the artifact.
+
 `source/` contains the Contiki-NG implementation used for the paper, identified by submission commit `ed98a7d8e9331802dc1fe50dee4884f8388e2e91`. The application, learning algorithm, battery model and saved experiment configurations are included in this repository.
 
-The original submission commits are preserved in this repository on the [`paper-source`](https://github.com/francescotheuma/iot2026-sarsa-rpl-artifact/tree/paper-source) branch and in the artifact branch's ancestry. On `paper-source`, files retain their original paths (for example, `examples/rpl-udp/`). The artifact places the same implementation under `source/` alongside the reproduction instructions and result records.
+The original submission commits are preserved in this repository on the [`paper-source`](https://github.com/francescotheuma/iot2026-sarsa-rpl-artifact/tree/paper-source) branch and in `main`'s ancestry. On `paper-source`, files retain their original paths (for example, `examples/rpl-udp/`). The artifact places the same implementation under `source/` alongside the reproduction instructions and result records.
 
-Cooja is included under `source/tools/cooja/` at the parent's pinned commit `1869e6ee8d19812fc018350a633b661fecec947e`. Other optional platform submodules are not bundled; their public URLs and exact commits are listed in `research/provenance.json`. The included source is preserved without algorithm changes.
+The submission records Cooja commit `1869e6ee8d19812fc018350a633b661fecec947e`. The archived Cooja tree, including the project's logging support, is bundled under `source/tools/cooja/`. That commit is not available from the public upstream Cooja repository, so use the bundled tree for this artifact. Other optional Contiki-NG submodules are not bundled; their public URLs and exact commits are listed in `research/provenance.json`. Its dependency paths are relative to the original source root, which is `source/` on `main`. The artifact contains regular files rather than active Git submodules.
+
+The implementation is preserved without algorithm changes. Artifact packaging changes are listed in `research/provenance.json`: the dense scenario uses a portable firmware path, and the application README describes this paper's experiments. The original files remain available on `paper-source`.
 
 ## Contents
 
-- `source/examples/rpl-udp/`: application client/server, learning implementation, battery proxy, project configuration and saved topologies.
+- `source/examples/rpl-udp/`: application client/server, learning implementation (`rpl-sarsa.c`), battery proxy (`battery.c`), project configuration and the three saved experiment topologies.
+- `source/os/net/link-stats.c`: passes MAC outcomes to the learning callback when SARSA is enabled.
 - `source/os/net/routing/rpl-lite/rpl-icmp6.c`: continuation-score DIO option.
 - `research/selected_results_and_tuning.csv`: 36 selected TTFND results and original workbook tuning notes.
 - `research/complete_learning_configurations.csv`: complete parameter tuples for the 24 selected learning runs, reconstructed using the author's confirmed reset-to-default procedure.
 - `research/table1_summary.csv`: Table 1 means and sample standard deviations, checked by `research/verify_results.py`.
 - `research/provenance.json`: source and dependency versions, confirmed battery settings and their provenance.
-- `SHA256SUMS.txt`: package-file integrity checks. Hashes refer to repository file bytes; use `git -c core.autocrlf=false clone` when checking on Windows to avoid checkout newline conversion. The checksum list excludes itself.
+- `SHA256SUMS.txt`: package-file integrity checks, covering every tracked file except the checksum list itself. `.gitattributes` preserves the expected file bytes across Windows and Linux checkouts.
+
+The broader `source/os/`, `source/arch/`, `source/tools/` and other example/test folders are retained Contiki-NG and Cooja infrastructure. They provide the original build context; the paper's experiments are the three `Final Experiment ...` configurations listed below. Generic Sky/Cooja and Renode examples in the application folder are not additional paper experiments.
+
+## How the implementation works
+
+Each client scores eligible RPL parents using two features: the parent's advertised remaining battery percentage and a link-quality score derived from ETX. Both features range from 0 to 100. Raw ETX uses 128 units per transmission: the link score is 100 at ETX <= 128, falls linearly to 0 at ETX >= 512, and uses integer arithmetic between those limits. The score is `(w_energy * battery + w_lq * link_quality) / 100`. Both weights start at 50 and are clipped to 0--1000; they are not constrained to sum to 100.
+
+For a successful MAC transmission, the reward is the parent's battery percentage, with `20 * numtx` subtracted when more than one transmission attempt was required. A failed transmission receives -100. Every Bth eligible MAC outcome updates both weights using the temporal-difference error. The target combines the immediate reward with the neighbour's advertised score for its own selected parent; this is the continuation score carried in DIOs. For a direct-root transmission, the target is just the immediate reward. Parent selection compares scores with a hysteresis margin favouring the current parent. There is no explicit random exploration policy. These calculations are in `source/examples/rpl-udp/rpl-sarsa.c`.
+
+With federation enabled, clients periodically include their two weights in a UDP request. The root stores the latest pair from each registered client (up to 15), recomputes an equal-weight arithmetic average on receipt of a report, and unicasts that average back to the reporting client. It does not broadcast an update to all clients. Stored entries do not expire, so the average can include older reports. The receiving client blends the average with its current weights using F percent. See `udp-client.c` and `udp-server.c` in the application folder.
 
 ## Build and configuration
 
-Use a Linux environment with the Z1/MSP430 toolchain required by this Contiki-NG tree, GNU Make and a compatible Java/Gradle environment. The bundled Cooja build specifies Java 21 and includes its Gradle wrapper. Historical host/compiler versions have not been recovered, and this package has not been rebuilt or experimentally rerun as part of the manuscript revision.
+Clone the default `main` branch or download its ZIP. Use a Linux environment with GNU Make, the Z1/MSP430 toolchain (`msp430-gcc`, targeting the MSP430F2617), and Java 21. Python 3 is sufficient for checking the recorded results; that check does not require the simulator or compiler. Cooja includes its Gradle wrapper. Historical host/compiler versions have not been recovered, and this package has not been rebuilt or experimentally rerun as part of the manuscript revision.
 
-From `source/tools/cooja/`, follow its README to build Cooja (for example `./gradlew distZip`). If extracting the ZIP loses executable permissions, restore them for `gradlew`. Required Gradle dependencies are downloaded during the build; this is not an offline distribution.
+From `source/tools/cooja/`, follow its README to build Cooja (for example `./gradlew distZip`). If extracting the ZIP loses executable permissions, restore them with `chmod +x gradlew`. Required Gradle dependencies are downloaded during the build; this is not an offline distribution.
 
 Before compiling a chosen profile, edit `source/examples/rpl-udp/project-conf.h`:
 
@@ -77,9 +92,9 @@ Open the selected saved simulation in Cooja and confirm that both mote types use
 | Degraded diamond | Final Experiment 2 (SARSA load balancing)/FinalExperiment2.csc |
 | Dense short / dense longer | Final Experiment 3 (Rings)/FinalExperiment3.csc |
 
-Set seed 123456, 123457 or 123458 as recorded in the results. Dense short and longer share the layout but use different depletion conditions and selected learning parameters. Saved files resolve application paths relative to the configuration directory.
+Set seed 123456, 123457 or 123458 as recorded in the results. Dense short and longer share the layout but use different depletion conditions and selected learning parameters. Source and firmware paths in the three experiment files resolve relative to the configuration directory. The dense simulation retains its historical window title, `Experiment 10`; the file `FinalExperiment3.csc` is the dense scenario used here.
 
-TTFND is elapsed simulation time to the first battery-modelled client's depletion. Capacity is an artificial 10^9 weighted ticks, listening cost is zero, and the root is not depleted. This is a CPU/TX stress proxy, not a calibrated hardware battery model. The original custom logging scripts and complete tuning-search history are not included.
+TTFND is elapsed simulation time to the first battery-modelled client's depletion. Capacity is an artificial 10^9 weighted ticks, listening cost is zero, and the root is not depleted. This is a CPU/TX stress proxy, not a calibrated hardware battery model. Logger examples are included under `source/tools/cooja/`; the exact logger variant used for each reported run and the complete tuning-search history have not been established.
 
 ## Reproduce a selected run
 
@@ -108,6 +123,16 @@ Range and signal fields above are simulator parameters, not measurements of phys
 
 The archived build defaults to CSMA (`MAKE_MAC_CSMA` in `source/Makefile.include`) and IEEE 802.15.4 channel 26 (`IEEE802154_CONF_DEFAULT_CHANNEL` in `source/os/contiki-default-conf.h`). The project configuration does not override these settings or add a MAC sleep schedule. Consult `source/examples/rpl-udp/Makefile`, `source/os/net/netstack.h` and `source/os/contiki-default-conf.h` for the archived build defaults. The `DUTY_CYCLE_PERCENT=5` constant in `battery.c` scales listening ticks in the accounting calculation only: it does not configure a MAC sleep schedule, and listening contributes zero depletion because its cost coefficient is zero.
 
+## Result records and optional plots
+
+`selected_results_and_tuning.csv` preserves the 36 selected lifetimes and the workbook's tuning notes. Its `scenario_sheet` labels map as follows: `Experiment 1` = Static, `Experiment 2` = Degraded, `Experiment 3` = Dense short, and `Experiment 3 LONG` = Dense longer. `selected_ttfnd_minutes` contains decimal minutes; `retained_raw_time` preserves the original timestamp text, including inconsistent separators. The summary calculations use the decimal-minute column.
+
+`complete_learning_configurations.csv` expands the tuning notes into full configurations by applying them to the reset defaults above. `SARSA` in the CSVs means the standalone profile. These two CSVs serve different purposes: one preserves the recorded outcomes and notes, while the other provides the settings needed to configure each selected learning run. `table1_summary.csv` gives the aggregate results.
+
+The archived logger examples under `source/tools/cooja/` write the timestamp/node format expected by the plotting helper. `logging_script.js` times out after 15 minutes; `logging_script_updated.js` times out after 30 minutes. `logging_script_pausable.js` also times out after 30 minutes and pauses once at 15 minutes for manual link changes. Those limits are too short for several reported runs, and the pausing example is not a recipe for the saved degraded configuration, whose degraded links are already set. For a new capture, set an adequate timeout and output filename for the chosen run; do not infer historical run settings from these examples. Relative log filenames are resolved from Cooja's working directory.
+
+The archived `source/examples/rpl-udp/analyse_sarsa_simple.py` is an optional battery-curve plotting helper, separate from the summary checker. It requires pandas and Matplotlib, expects logs named `cooja_sarsa.log`, `cooja_mrhof.log` and/or `cooja_fed.log` in `source/tools/cooja/`, and selects them using `CHOICE` and `ENABLE_COMPARISON` near the top of the script. Its parser expects log lines beginning with a simulation timestamp in microseconds followed by `ID:<node>`. It writes images to the application's `plots/` folder. Those historical input logs are not bundled, so the script alone cannot regenerate the paper's plots.
+
 ## Check the reported summary
 
 From the repository root, run:
@@ -116,7 +141,9 @@ From the repository root, run:
 python3 research/verify_results.py
 ```
 
-This recomputes all 12 means and sample standard deviations from the 36 recorded TTFND values, checks the rounded values against Table 1, and checks the scenario/seed/profile mapping and drain values for all 24 learning configurations. It does not rerun Cooja. `research/table1_summary.csv` contains the resulting summary. The calculations use the recorded decimal-minute values; the retained raw timestamp column is preserved as historical evidence and is not silently reinterpreted.
+This recomputes all 12 means and sample standard deviations from the 36 recorded TTFND values, checks the rounded values against Table 1, and checks the scenario/seed/profile mapping, drain values and reconstruction from tuning notes for all 24 learning configurations. It does not rerun Cooja. `research/table1_summary.csv` contains the resulting summary. The calculations use the recorded decimal-minute values.
+
+To verify the package file checksums on Linux, run `sha256sum -c SHA256SUMS.txt` from the repository root before editing any files. A configuration change will intentionally invalidate the corresponding checksum.
 
 ## Interpretation and limitations
 
